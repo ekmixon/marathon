@@ -71,18 +71,15 @@ class Client(object):
 
         app_id = util.normalize_marathon_id_path(app_id)
         if version is None:
-            path = 'v2/apps{}'.format(app_id)
+            path = f'v2/apps{app_id}'
         else:
-            path = 'v2/apps{}/versions/{}'.format(app_id, version)
+            path = f'v2/apps{app_id}/versions/{version}'
 
         response = self._rpc.session.get(path)
         response.raise_for_status()
 
         # Looks like Marathon return different JSON for versions
-        if version is None:
-            return response.json().get('app')
-        else:
-            return response.json()
+        return response.json().get('app') if version is None else response.json()
 
     def get_groups(self):
         """Get a list of known groups.
@@ -108,9 +105,9 @@ class Client(object):
 
         group_id = util.normalize_marathon_id_path(group_id)
         if version is None:
-            path = 'v2/groups{}'.format(group_id)
+            path = f'v2/groups{group_id}'
         else:
-            path = 'v2/groups{}/versions/{}'.format(group_id, version)
+            path = f'v2/groups{group_id}/versions/{version}'
 
         response = self._rpc.session.get(path)
         return response.json()
@@ -128,13 +125,11 @@ class Client(object):
         """
 
         if max_count is not None and max_count <= 0:
-            raise DCOSException(
-                'Maximum count must be a positive number: {}'.format(max_count)
-            )
+            raise DCOSException(f'Maximum count must be a positive number: {max_count}')
 
         app_id = util.normalize_marathon_id_path(app_id)
 
-        path = 'v2/apps{}/versions'.format(app_id)
+        path = f'v2/apps{app_id}/versions'
 
         response = self._rpc.session.get(path)
 
@@ -279,12 +274,11 @@ class Client(object):
 
         app_id = util.normalize_marathon_id_path(app_id)
         params = self._force_params(force)
-        path = 'v2/apps{}'.format(app_id)
+        path = f'v2/apps{app_id}'
 
         response = self._rpc.session.put(path, params=params, json={'instances': int(instances)})
 
-        deployment = response.json().get('deploymentId')
-        return deployment
+        return response.json().get('deploymentId')
 
     def scale_group(self, group_id, scale_factor, force=False):
         """Scales a group with the requested scale-factor.
@@ -300,12 +294,11 @@ class Client(object):
 
         group_id = util.normalize_marathon_id_path(group_id)
         params = self._force_params(force)
-        path = 'v2/groups{}'.format(group_id)
+        path = f'v2/groups{group_id}'
 
         response = self._rpc.session.put(path, params=params, json={'scaleBy': scale_factor})
 
-        deployment = response.json().get('deploymentId')
-        return deployment
+        return response.json().get('deploymentId')
 
     def stop_app(self, app_id, force=False):
         """Scales an application to zero instances.
@@ -332,7 +325,7 @@ class Client(object):
 
         app_id = util.normalize_marathon_id_path(app_id)
         params = self._force_params(force)
-        path = 'v2/apps{}'.format(app_id)
+        path = f'v2/apps{app_id}'
         self._rpc.session.delete(path, params=params)
 
     def remove_group(self, group_id, force=False):
@@ -347,7 +340,7 @@ class Client(object):
 
         group_id = util.normalize_marathon_id_path(group_id)
         params = self._force_params(force)
-        path = 'v2/groups{}'.format(group_id)
+        path = f'v2/groups{group_id}'
 
         response = self._rpc.session.delete(path, params=params)
         return response.json()
@@ -369,7 +362,7 @@ class Client(object):
             params['host'] = host
         if scale:
             params['scale'] = scale
-        path = 'v2/apps{}/tasks'.format(app_id)
+        path = f'v2/apps{app_id}/tasks'
         response = self._rpc.session.delete(path, params=params)
         return response.json()
 
@@ -414,7 +407,7 @@ class Client(object):
 
         app_id = util.normalize_marathon_id_path(app_id)
         params = self._force_params(force)
-        path = 'v2/apps{}/restart'.format(app_id)
+        path = f'v2/apps{app_id}/restart'
 
         response = self._rpc.session.post(path, params=params)
         return response.json()
@@ -447,16 +440,15 @@ class Client(object):
 
         response = self._rpc.session.get('v2/deployments')
 
-        if app_id is not None:
-            app_id = util.normalize_marathon_id_path(app_id)
-            deployments = [
-                deployment for deployment in response.json()
-                if app_id in deployment['affectedApps']
-            ]
-        else:
-            deployments = response.json()
+        if app_id is None:
+            return response.json()
 
-        return deployments
+        app_id = util.normalize_marathon_id_path(app_id)
+        return [
+            deployment
+            for deployment in response.json()
+            if app_id in deployment['affectedApps']
+        ]
 
     def _cancel_deployment(self, deployment_id, force):
         """Cancels an application deployment.
@@ -473,14 +465,11 @@ class Client(object):
         """
 
         params = self._force_params(force)
-        path = 'v2/deployments/{}'.format(deployment_id)
+        path = f'v2/deployments/{deployment_id}'
 
         response = self._rpc.session.delete(path, params=params)
 
-        if force:
-            return None
-        else:
-            return response.json()
+        return None if force else response.json()
 
     def rollback_deployment(self, deployment_id):
         """Rolls back an application deployment.
@@ -514,16 +503,13 @@ class Client(object):
 
         response = self._rpc.session.get('v2/tasks')
 
-        if app_id is not None:
-            app_id = util.normalize_marathon_id_path(app_id)
-            tasks = [
-                task for task in response.json()['tasks']
-                if app_id == task['appId']
-            ]
-        else:
-            tasks = response.json()['tasks']
+        if app_id is None:
+            return response.json()['tasks']
 
-        return tasks
+        app_id = util.normalize_marathon_id_path(app_id)
+        return [
+            task for task in response.json()['tasks'] if app_id == task['appId']
+        ]
 
     def get_task(self, task_id):
         """Returns a task
@@ -554,11 +540,7 @@ class Client(object):
         :rtype: dict
         """
 
-        if not wipe:
-            params = None
-        else:
-            params = {'wipe': 'true'}
-
+        params = {'wipe': 'true'} if wipe else None
         response = self._rpc.session.post('v2/tasks/delete', params=params, json={'ids': [task_id]})
 
         task = next(

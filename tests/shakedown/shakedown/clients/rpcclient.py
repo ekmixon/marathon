@@ -46,8 +46,7 @@ def get_ssl_context():
     cafile = get_ca_file()
     if cafile and cafile.is_file():
         logger.info('Provide certificate %s', cafile)
-        ssl_context = ssl.create_default_context(cafile=cafile)
-        return ssl_context
+        return ssl.create_default_context(cafile=cafile)
     else:
         return None
 
@@ -61,10 +60,7 @@ def verify_ssl():
        * Path to ca certificate if one is found
     """
     cafile = get_ca_file()
-    if cafile and cafile.is_file():
-        return str(cafile)
-    else:
-        return False
+    return str(cafile) if cafile and cafile.is_file() else False
 
 
 class RpcClient(object):

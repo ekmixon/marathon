@@ -119,7 +119,7 @@ def install_package(
 
     if package_version is None:
         # Get the resolved version for logging below
-        package_version = 'auto:{}'.format(pkg.version())
+        package_version = f'auto:{pkg.version()}'
 
     if service_name is None:
         # Get the service name from the marathon template
@@ -134,16 +134,12 @@ def install_package(
                 package_name, service_name, package_version, options)
 
     try:
-        # Print pre-install notes to console log
-        pre_install_notes = pkg.package_json().get('preInstallNotes')
-        if pre_install_notes:
+        if pre_install_notes := pkg.package_json().get('preInstallNotes'):
             logger.info(pre_install_notes)
 
         package_manager.install_app(pkg, options, service_name)
 
-        # Print post-install notes to console log
-        post_install_notes = pkg.package_json().get('postInstallNotes')
-        if post_install_notes:
+        if post_install_notes := pkg.package_json().get('postInstallNotes'):
             logger.info(post_install_notes)
 
         # Optionally wait for the app's deployment to finish
@@ -324,9 +320,9 @@ def uninstall_package_and_data(
         msg = 'service_name must be provided when data params are missing AND the package isn\'t installed'
         raise DCOSException(msg)
     if not role:
-        role = '{}-role'.format(service_name)
+        role = f'{service_name}-role'
     if not zk_node:
-        zk_node = 'dcos-service-{}'.format(service_name)
+        zk_node = f'dcos-service-{service_name}'
     delete_persistent_data(role, zk_node)
 
     finish = time.time()

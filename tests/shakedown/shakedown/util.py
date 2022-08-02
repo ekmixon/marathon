@@ -60,11 +60,8 @@ def temptext(content=None):
         yield (fd, path)
     finally:
         # Close the file descriptor and ignore errors
-        try:
+        with contextlib.suppress(OSError):
             os.close(fd)
-        except OSError:
-            pass
-
         # delete the path
         shutil.rmtree(path, ignore_errors=True)
 
@@ -137,13 +134,12 @@ def sh_copy(src, dst):
         shutil.copy(src, dst)
     except EnvironmentError as e:
         logger.exception('Unable to copy [%s] to [%s]', src, dst)
-        if e.strerror:
-            if e.filename:
-                raise DCOSException("{}: {}".format(e.strerror, e.filename))
-            else:
-                raise DCOSException(e.strerror)
-        else:
+        if not e.strerror:
             raise DCOSException(e)
+        if e.filename:
+            raise DCOSException(f"{e.strerror}: {e.filename}")
+        else:
+            raise DCOSException(e.strerror)
     except Exception as e:
         logger.exception('Unknown error while coping [%s] to [%s]', src, dst)
         raise DCOSException(e)
@@ -162,13 +158,12 @@ def sh_move(src, dst):
         shutil.move(src, dst)
     except EnvironmentError as e:
         logger.exception('Unable to move [%s] to [%s]', src, dst)
-        if e.strerror:
-            if e.filename:
-                raise DCOSException("{}: {}".format(e.strerror, e.filename))
-            else:
-                raise DCOSException(e.strerror)
-        else:
+        if not e.strerror:
             raise DCOSException(e)
+        if e.filename:
+            raise DCOSException(f"{e.strerror}: {e.filename}")
+        else:
+            raise DCOSException(e.strerror)
     except Exception as e:
         logger.exception('Unknown error while moving [%s] to [%s]', src, dst)
         raise DCOSException(e)
@@ -188,8 +183,7 @@ def ensure_dir_exists(directory):
         try:
             os.makedirs(directory, 0o775)
         except os.error as e:
-            raise DCOSException(
-                'Cannot create directory [{}]: {}'.format(directory, e))
+            raise DCOSException(f'Cannot create directory [{directory}]: {e}')
 
 
 def ensure_file_exists(path):
@@ -205,8 +199,7 @@ def ensure_file_exists(path):
             open(path, 'w').close()
             os.chmod(path, 0o600)
         except IOError as e:
-            raise DCOSException(
-                'Cannot create file [{}]: {}'.format(path, e))
+            raise DCOSException(f'Cannot create file [{path}]: {e}')
 
 
 def read_file(path):
@@ -217,7 +210,7 @@ def read_file(path):
     :rtype: str
     """
     if not os.path.isfile(path):
-        raise DCOSException('path [{}] is not a file'.format(path))
+        raise DCOSException(f'path [{path}] is not a file')
 
     with open_file(path) as file_:
         return file_.read()
@@ -232,22 +225,17 @@ def enforce_file_permissions(path):
     """
 
     if not os.path.isfile(path):
-        raise DCOSException('Path [{}] is not a file'.format(path))
+        raise DCOSException(f'Path [{path}] is not a file')
 
-    # Unix permissions are incompatible with windows
-    # TODO: https://github.com/dcos/dcos-cli/issues/662
     if sys.platform == 'win32':
         return
-    else:
-        permissions = oct(stat.S_IMODE(os.stat(path).st_mode))
-        if permissions not in ['0o600', '0600', '0o400', '0400']:
-            if os.path.realpath(path) != path:
-                path = '%s (pointed to by %s)' % (os.path.realpath(path), path)
-            msg = (
-                "Permissions '{}' for configuration file '{}' are too open. "
-                "File must only be accessible by owner. "
-                "Aborting...".format(permissions, path))
-            raise DCOSException(msg)
+    permissions = oct(stat.S_IMODE(os.stat(path).st_mode))
+    if permissions not in ['0o600', '0600', '0o400', '0400']:
+        if os.path.realpath(path) != path:
+            path = f'{os.path.realpath(path)} (pointed to by {path})'
+        msg = f"Permissions '{permissions}' for configuration file '{path}' are too open. File must only be accessible by owner. Aborting..."
+
+        raise DCOSException(msg)
 
 
 def read_file_secure(path):
@@ -289,7 +277,7 @@ def which(program):
                 return exe_file
 
     if is_windows_platform() and not program.endswith('.exe'):
-        return which(program + '.exe')
+        return which(f'{program}.exe')
 
     return None
 
@@ -338,7 +326,7 @@ def load_json(reader, keep_order=False):
             'Unhandled exception while loading JSON: %r',
             error)
 
-        raise DCOSException('Error loading JSON: {}'.format(error))
+        raise DCOSException(f'Error loading JSON: {error}')
 
 
 def list_to_err(errs):
@@ -482,8 +470,7 @@ def io_exception(path, errno):
     :rtype: DCOSException
     """
 
-    return DCOSException('Error opening file [{}]: {}'.format(
-        path, os.strerror(errno)))
+    return DCOSException(f'Error opening file [{path}]: {os.strerror(errno)}')
 
 
 STREAM_CONCURRENCY = 20
@@ -519,10 +506,10 @@ def get_ssh_options(config_file, options):
     :rtype: str
     """
 
-    ssh_options = ' '.join('-o {}'.format(opt) for opt in options)
+    ssh_options = ' '.join(f'-o {opt}' for opt in options)
 
     if config_file:
-        ssh_options += ' -F {}'.format(config_file)
+        ssh_options += f' -F {config_file}'
 
     if ssh_options:
         ssh_options += ' '
@@ -577,8 +564,7 @@ def read_file_json(path):
     """
     if path is None:
         return {}
-    else:
-        # Expand ~ in the path
-        path = os.path.expanduser(path)
-        with open_file(path) as options_file:
-            return load_json(options_file)
+    # Expand ~ in the path
+    path = os.path.expanduser(path)
+    with open_file(path) as options_file:
+        return load_json(options_file)

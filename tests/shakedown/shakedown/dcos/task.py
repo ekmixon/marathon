@@ -69,11 +69,7 @@ def task_completed(task_id):
                         'TASK_LOST',
                         'TASK_ERROR')
 
-    for task in tasks:
-        if task['state'] in completed_states:
-            return True
-
-    return False
+    return any(task['state'] in completed_states for task in tasks)
 
 
 def wait_for_task_completion(task_id):

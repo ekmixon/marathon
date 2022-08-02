@@ -2,9 +2,18 @@ import requests
 import json
 
 def generate_apps():
-    apps = [{'id': '/app-{}'.format(i), 'cmd': 'sleep 3600', 'cpus': 0.1, 'mem': 32, 'instances': 0} for i in range(1000)]
-    groups = {'id': '/', 'groups': [], 'apps': apps}
-    return groups
+    apps = [
+        {
+            'id': f'/app-{i}',
+            'cmd': 'sleep 3600',
+            'cpus': 0.1,
+            'mem': 32,
+            'instances': 0,
+        }
+        for i in range(1000)
+    ]
+
+    return {'id': '/', 'groups': [], 'apps': apps}
 
 def main():
     apps = generate_apps()

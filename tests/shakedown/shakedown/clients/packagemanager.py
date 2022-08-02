@@ -80,11 +80,9 @@ class PackageManager:
 
         if 'capabilities' not in response:
             logger.error(
-                'Request to get cluster capabilities: {} '
-                'returned unexpected response: {}. '
-                'Missing "capabilities" field'.format(
-                    urllib.parse.urljoin(self.cosmos_url, 'capabilities'),
-                    response))
+                f"""Request to get cluster capabilities: {urllib.parse.urljoin(self.cosmos_url, 'capabilities')} returned unexpected response: {response}. Missing "capabilities" field"""
+            )
+
             return False
 
         return {'name': capability} in response['capabilities']
@@ -266,12 +264,11 @@ class PackageManager:
                 }
                 return self._post('add', headers=extra_headers, data=pkg)
         except DCOSHTTPException as e:
-            if e.status() == 404:
-                message = 'Your version of DC/OS ' \
-                          'does not support this operation'
-                raise DCOSException(message)
-            else:
+            if e.status() != 404:
                 raise e
+            message = 'Your version of DC/OS ' \
+                          'does not support this operation'
+            raise DCOSException(message)
 
     def package_add_remote(self, package_name, package_version):
         """
@@ -290,12 +287,11 @@ class PackageManager:
                 json['packageVersion'] = package_version
             return self._post('add', params=json)
         except DCOSHTTPException as e:
-            if e.status() == 404:
-                message = 'Your version of DC/OS ' \
-                          'does not support this operation'
-                raise DCOSException(message)
-            else:
+            if e.status() != 404:
                 raise e
+            message = 'Your version of DC/OS ' \
+                          'does not support this operation'
+            raise DCOSException(message)
 
     @cosmos_error
     def _post(self, request, params=None, headers=None, data=None):
@@ -313,7 +309,7 @@ class PackageManager:
         :rtype: requests.Response
         """
 
-        endpoint = 'package/{}'.format(request)
+        endpoint = f'package/{request}'
         try:
             return self.cosmos.call_endpoint(
                 endpoint, headers, data=data, json=params)
@@ -490,14 +486,14 @@ class CosmosPackageVersion():
         response = PackageManager(self._cosmos_url).cosmos_post(
             "list-versions", params)
 
-        return list(
-            version for (version, releaseVersion) in
-            sorted(
+        return [
+            version
+            for (version, releaseVersion) in sorted(
                 response.json().get("results").items(),
                 key=lambda item: int(item[1]),  # release version
-                reverse=True
+                reverse=True,
             )
-        )
+        ]
 
 
 def _format_error_message(error):
@@ -511,21 +507,19 @@ def _format_error_message(error):
     if error.get("type") == "AmbiguousAppId":
         helper = (".\nPlease use --app-id to specify the ID of the app "
                   "to uninstall, or use --all to uninstall all apps.")
-        error_message = error.get("message") + helper
+        return error.get("message") + helper
     elif error.get("type") == "MultipleFrameworkIds":
         helper = ". Manually shut them down using 'dcos service shutdown'"
-        error_message = error.get("message") + helper
+        return error.get("message") + helper
     elif error.get("type") == "JsonSchemaMismatch":
-        error_message = _format_json_schema_mismatch_message(error)
+        return _format_json_schema_mismatch_message(error)
     elif error.get("type") == "MarathonBadResponse":
-        error_message = _format_marathon_bad_response_message(error)
+        return _format_marathon_bad_response_message(error)
     elif error.get('type') == 'NotImplemented':
-        error_message = 'DC/OS has not been ' \
-                        'configured to support this operation'
-    else:
-        error_message = error.get("message")
+        return 'DC/OS has not been ' 'configured to support this operation'
 
-    return error_message
+    else:
+        return error.get("message")
 
 
 def _format_json_schema_mismatch_message(error):
@@ -537,29 +531,27 @@ def _format_json_schema_mismatch_message(error):
     :rtype: str
     """
 
-    error_messages = ["Error: {}".format(error.get("message"))]
+    error_messages = [f'Error: {error.get("message")}']
     for err in error.get("data").get("errors"):
         if err.get("unwanted"):
-            reason = "Unexpected properties: {}".format(err["unwanted"])
+            reason = f'Unexpected properties: {err["unwanted"]}'
             error_messages += [reason]
         if err.get("found"):
-            found = "Found: {}".format(err["found"])
+            found = f'Found: {err["found"]}'
             error_messages += [found]
         if err.get("minimum"):
-            found = "Required minimum: {}".format(err["minimum"])
+            found = f'Required minimum: {err["minimum"]}'
             error_messages += [found]
         if err.get("expected"):
-            expected = "Expected: {}".format(",".join(err["expected"]))
+            expected = f'Expected: {",".join(err["expected"])}'
             error_messages += [expected]
         if err.get("missing"):
-            missing = "Required parameter missing: {}".format(
-                ",".join(err["missing"]),
-            )
+            missing = f'Required parameter missing: {",".join(err["missing"])}'
             error_messages += [missing]
         if err.get("instance"):
             pointer = err["instance"].get("pointer")
             formatted_path = pointer.lstrip("/").replace("/", ".")
-            path = "Path: {}".format(formatted_path)
+            path = f"Path: {formatted_path}"
             error_messages += [path]
 
     error_messages += [

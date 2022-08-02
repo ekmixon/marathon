@@ -65,8 +65,7 @@ class DiagnosticBundle():
             file_name = bundle['file_name']
             if os.path.basename(file_name) == self.bundle_name:
                 bundle_name = os.path.basename(file_name)
-                download_path = os.path.join('serve', bundle_name)
-                return download_path
+                return os.path.join('serve', bundle_name)
 
         return None
 

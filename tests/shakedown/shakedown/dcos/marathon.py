@@ -36,7 +36,7 @@ def mom_version(name='marathon-user'):
     else:
         # We can either skip the corresponding test by returning False
         # or raise an exception.
-        logger.warning('{} MoM not found. Version is None'.format(name))
+        logger.warning(f'{name} MoM not found. Version is None')
         return None
 
 
@@ -53,11 +53,13 @@ def mom_version_less_than(version, name='marathon-user'):
     """
     if service_available_predicate(name):
         return mom_version() < LooseVersion(version)
-    else:
         # We can either skip the corresponding test by returning False
         # or raise an exception.
-        logger.warning('{} MoM not found. mom_version_less_than({}) is False'.format(name, version))
-        return False
+    logger.warning(
+        f'{name} MoM not found. mom_version_less_than({version}) is False'
+    )
+
+    return False
 
 
 def deployment_predicate(app_id=None):
@@ -98,8 +100,7 @@ def marathon_on_marathon(name='marathon-user'):
     :type name: str
     """
 
-    client = marathon.create_client(name)
-    yield client
+    yield marathon.create_client(name)
 
 
 def deployments_for(service_id=None, deployment_id=None):
@@ -128,9 +129,9 @@ def deployment_wait(service_id=None, deployment_id=None, wait_fixed=2000, max_at
     assert not all([service_id, deployment_id]), "Use either deployment_id or service_id, but not both."
 
     if deployment_id:
-        logger.info("Waiting for the deployment_id {} to finish".format(deployment_id))
+        logger.info(f"Waiting for the deployment_id {deployment_id} to finish")
     elif service_id:
-        logger.info('Waiting for {} to deploy successfully'.format(service_id))
+        logger.info(f'Waiting for {service_id} to deploy successfully')
     else:
         logger.info('Waiting for all current deployments to finish')
 

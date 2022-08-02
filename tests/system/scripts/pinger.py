@@ -43,6 +43,8 @@ def make_handler():
     Factory method that creates a handler class.
     """
 
+
+
     class Handler(SimpleHTTPRequestHandler):
 
         def handle_ping(self):
@@ -51,7 +53,7 @@ def make_handler():
             self.end_headers()
 
             marathonId = os.getenv("MARATHON_APP_ID", "NO_MARATHON_APP_ID_SET")
-            msg = "Pong {}".format(marathonId)
+            msg = f"Pong {marathonId}"
 
             self.wfile.write(byte_type(msg, "UTF-8"))
             return
@@ -65,7 +67,7 @@ def make_handler():
             query = urlparse(self.path).query
             query_components = dict(qc.split("=") for qc in query.split("&"))
             logging.info(query_components)
-            full_url = 'http://{}/ping'.format(query_components['url'])
+            full_url = f"http://{query_components['url']}/ping"
 
             url_req = Request(full_url, headers={"User-Agent": "Mozilla/5.0"})
             response = urlopen(url_req)
@@ -79,7 +81,7 @@ def make_handler():
 
             self.wfile.write(res)
             marathonId = os.getenv("MARATHON_APP_ID", "NO_MARATHON_APP_ID_SET")
-            msg = "\nRelay from {}".format(marathonId)
+            msg = f"\nRelay from {marathonId}"
             self.wfile.write(byte_type(msg, "UTF-8"))
 
             return
@@ -87,12 +89,14 @@ def make_handler():
         def do_GET(self):
             try:
                 logging.debug("Got GET request")
-                if self.path == '/ping':
+                if (
+                    self.path == '/ping'
+                    or self.path != '/ping'
+                    and not self.path.startswith('/relay-ping')
+                ):
                     return self.handle_ping()
-                elif self.path.startswith('/relay-ping'):
-                    return self.handle_relay()
                 else:
-                    return self.handle_ping()
+                    return self.handle_relay()
             except Exception:
                 logging.exception('Could not handle GET request')
                 raise
@@ -104,6 +108,7 @@ def make_handler():
             except Exception:
                 logging.exception('Could not handle POST request')
                 raise
+
 
     return Handler
 

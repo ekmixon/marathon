@@ -4,6 +4,7 @@
     In addition it contains tests which are specific to MoM environments only.
 """
 
+
 import apps
 import common
 import pytest
@@ -30,7 +31,7 @@ from shakedown.dcos.zookeeper import delete_zk_node
 import marathon_common_tests
 for attribute in dir(marathon_common_tests):
     if attribute.startswith('test_'):
-        exec("from marathon_common_tests import {}".format(attribute))
+        exec(f"from marathon_common_tests import {attribute}")
 
 from shakedown.dcos.agent import required_private_agents # NOQA
 from fixtures import wait_for_marathon_user_and_cleanup # NOQA
@@ -255,8 +256,11 @@ def test_framework_unavailable_on_mom():
 def partition_agent(hostname):
     """Partition a node from all network traffic except for SSH and loopback"""
 
-    shakedown.dcos.file.copy_file_to_agent(hostname, "{}/net-services-agent.sh".format(scripts.scripts_dir()))
-    logger.info("partitioning {}".format(hostname))
+    shakedown.dcos.file.copy_file_to_agent(
+        hostname, f"{scripts.scripts_dir()}/net-services-agent.sh"
+    )
+
+    logger.info(f"partitioning {hostname}")
     shakedown.dcos.command.run_command_on_agent(hostname, 'sh net-services-agent.sh fail')
 
 

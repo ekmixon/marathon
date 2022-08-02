@@ -5,6 +5,7 @@
     tests round dcos services registration and control and security.
 """
 
+
 import apps
 import common
 import json
@@ -36,25 +37,25 @@ from fixtures import sse_events, wait_for_marathon_and_cleanup, user_billy, dock
 #     from dcos_service_marathon_tests import test_*
 for attribute in dir(dcos_service_marathon_tests):
     if attribute.startswith('test_'):
-        exec("from dcos_service_marathon_tests import {}".format(attribute))
+        exec(f"from dcos_service_marathon_tests import {attribute}")
 
 # the following lines essentially do:
 #     from marathon_auth_common_tests import test_*
 for attribute in dir(marathon_auth_common_tests):
     if attribute.startswith('test_'):
-        exec("from marathon_auth_common_tests import {}".format(attribute))
+        exec(f"from marathon_auth_common_tests import {attribute}")
 
 # the following lines essentially do:
 #     from marathon_common_tests import test_*
 for attribute in dir(marathon_common_tests):
     if attribute.startswith('test_'):
-        exec("from marathon_common_tests import {}".format(attribute))
+        exec(f"from marathon_common_tests import {attribute}")
 
 # the following lines essentially do:
 #     from marathon_pods_tests import test_*
 for attribute in dir(marathon_pods_tests):
     if attribute.startswith('test_'):
-        exec("from marathon_pods_tests import {}".format(attribute))
+        exec(f"from marathon_pods_tests import {attribute}")
 
 
 pytestmark = [pytest.mark.usefixtures('wait_for_marathon_and_cleanup')]
@@ -88,7 +89,7 @@ def teardown_module(module):
 @masters(3)
 def test_marathon_delete_leader(marathon_service_name):
     original_leader = marathon_leader_ip()
-    print('leader: {}'.format(original_leader))
+    print(f'leader: {original_leader}')
     common.abdicate_marathon_leader()
 
     wait_for_service_endpoint(marathon_service_name, timedelta(minutes=5).total_seconds(), path="ping")
@@ -233,7 +234,7 @@ async def test_event_channel(sse_events): # NOQA F811
 @dcos_1_9
 @pytest.mark.skipif("is_strict()")
 def test_external_volume():
-    volume_name = "marathon-si-test-vol-{}".format(uuid.uuid4().hex)
+    volume_name = f"marathon-si-test-vol-{uuid.uuid4().hex}"
     app_def = apps.external_volume_mesos_app()
     app_def["container"]["volumes"][0]["external"]["name"] = volume_name
     app_id = app_def['id']
@@ -242,7 +243,7 @@ def test_external_volume():
     # --enable_features external_volumes option activated.
     # First deployment should create the volume since it has a unique name
     try:
-        print('INFO: Deploying {} with external volume {}'.format(app_id, volume_name))
+        print(f'INFO: Deploying {app_id} with external volume {volume_name}')
         client = marathon.create_client()
         client.add_app(app_def)
         deployment_wait(service_id=app_id)
@@ -252,12 +253,12 @@ def test_external_volume():
         common.assert_app_tasks_healthy(client, app_def)
 
         # Scale down to 0
-        print('INFO: Scaling {} to 0 instances'.format(app_id))
+        print(f'INFO: Scaling {app_id} to 0 instances')
         client.stop_app(app_id)
         deployment_wait(service_id=app_id)
 
         # Scale up again: the volume should be successfully reused
-        print('INFO: Scaling {} back to 1 instance'.format(app_id))
+        print(f'INFO: Scaling {app_id} back to 1 instance')
         client.scale_app(app_id, 1)
         deployment_wait(service_id=app_id)
 
@@ -265,30 +266,33 @@ def test_external_volume():
         common.assert_app_tasks_healthy(client, app_def)
 
         # Remove the app to be able to remove the volume
-        print('INFO: Finally removing {}'.format(app_id))
+        print(f'INFO: Finally removing {app_id}')
         client.remove_app(app_id)
         deployment_wait(service_id=app_id)
     except Exception as e:
-        print('Fail to test external volumes: {}'.format(e))
+        print(f'Fail to test external volumes: {e}')
         raise e
     finally:
         # Clean up after the test: external volumes are not destroyed by marathon or dcos
         # and have to be cleaned manually.
-        cmd = 'sudo /opt/mesosphere/bin/dvdcli remove --volumedriver=rexray --volumename={}'.format(volume_name)
+        cmd = f'sudo /opt/mesosphere/bin/dvdcli remove --volumedriver=rexray --volumename={volume_name}'
+
         removed = False
         for agent in get_private_agents():
             status, output = run_command_on_agent(agent, cmd)  # NOQA
-            print('DEBUG: Failed to remove external volume with name={} on agent={}: {}'.format(
-                volume_name, agent, output))
+            print(
+                f'DEBUG: Failed to remove external volume with name={volume_name} on agent={agent}: {output}'
+            )
+
             if status:
                 removed = True
         # Note: Removing the volume might fail sometimes because EC2 takes some time (~10min) to recognize that
         # the volume is not in use anymore hence preventing it's removal. This is a known pitfall: we log the error
         # and the volume should be cleaned up manually later.
         if not removed:
-            print('WARNING: Failed to remove external volume with name={}'.format(volume_name))
+            print(f'WARNING: Failed to remove external volume with name={volume_name}')
         else:
-            print('DEBUG: External volume with name={} successfully removed'.format(volume_name))
+            print(f'DEBUG: External volume with name={volume_name} successfully removed')
 
 
 @pytest.mark.skipif('is_multi_master() or marathon_version_less_than("1.5")')
@@ -300,7 +304,7 @@ def test_marathon_backup_and_restore_leader(marathon_service_name):
 
     backup_file = 'backup.tar'
     backup_dir = '/tmp'
-    backup_url = 'file://{}/{}'.format(backup_dir, backup_file)
+    backup_url = f'file://{backup_dir}/{backup_file}'
 
     # Deploy a simple test app. It is expected to be there after leader reelection
     app_def = apps.sleep_app()
@@ -311,26 +315,32 @@ def test_marathon_backup_and_restore_leader(marathon_service_name):
     deployment_wait(service_id=app_id)
 
     app = client.get_app(app_id)
-    assert app['tasksRunning'] == 1, "The number of running tasks is {}, but 1 was expected".format(app["tasksRunning"])
+    assert (
+        app['tasksRunning'] == 1
+    ), f'The number of running tasks is {app["tasksRunning"]}, but 1 was expected'
+
     task_id = app['tasks'][0]['id']
 
     # Abdicate the leader with backup and restore
     original_leader = marathon_leader_ip()
-    print('leader: {}'.format(original_leader))
-    params = '?backup={}&restore={}'.format(backup_url, backup_url)
-    print('DELETE /v2/leader{}'.format(params))
+    print(f'leader: {original_leader}')
+    params = f'?backup={backup_url}&restore={backup_url}'
+    print(f'DELETE /v2/leader{params}')
     common.abdicate_marathon_leader(params)
 
     # Wait for new leader (but same master server) to be up and ready
     wait_for_service_endpoint(marathon_service_name, timedelta(minutes=5).total_seconds(), path="ping")
     app = client.get_app(app_id)
-    assert app['tasksRunning'] == 1, "The number of running tasks is {}, but 1 was expected".format(app["tasksRunning"])
+    assert (
+        app['tasksRunning'] == 1
+    ), f'The number of running tasks is {app["tasksRunning"]}, but 1 was expected'
+
     assert task_id == app['tasks'][0]['id'], "Task has a different ID after restore"
 
     # Check if the backup file exits and is valid
-    cmd = 'tar -tf {}/{} | wc -l'.format(backup_dir, backup_file)
+    cmd = f'tar -tf {backup_dir}/{backup_file} | wc -l'
     status, data = run_command_on_master(cmd)
-    assert status, 'Failed to validate backup file {}'.format(backup_url)
+    assert status, f'Failed to validate backup file {backup_url}'
     assert int(data.rstrip()) > 0, "Backup file is empty"
 
 
@@ -569,7 +579,7 @@ def test_app_inaccessible_secret_env_var():
 
     secret_name = '/some/secret'    # Secret in an inaccessible namespace
 
-    app_id = '/app-inaccessible-secret-env-var-{}'.format(uuid.uuid4().hex)
+    app_id = f'/app-inaccessible-secret-env-var-{uuid.uuid4().hex}'
     app_def = {
         "id": app_id,
         "instances": 1,
@@ -599,9 +609,12 @@ def test_app_inaccessible_secret_env_var():
     with pytest.raises(requests.HTTPError) as excinfo:
         client.add_app(app_def)
 
-    print('An app with an inaccessible secret could not be deployed because: {}'.format(excinfo.value))
+    print(
+        f'An app with an inaccessible secret could not be deployed because: {excinfo.value}'
+    )
+
     assert excinfo.value.response.status_code == 422
-    assert 'Secret {} is not accessible'.format(secret_name) in excinfo.value.response.text
+    assert f'Secret {secret_name} is not accessible' in excinfo.value.response.text
 
 
 @dcos_1_9
@@ -610,7 +623,7 @@ def test_pod_inaccessible_secret_env_var():
 
     secret_name = '/some/secret'    # Secret in an inaccessible namespace
 
-    pod_id = '/pod-inaccessible-secret-env-var-{}'.format(uuid.uuid4().hex)
+    pod_id = f'/pod-inaccessible-secret-env-var-{uuid.uuid4().hex}'
     pod_def = {
         "id": pod_id,
         "containers": [{
@@ -645,9 +658,12 @@ def test_pod_inaccessible_secret_env_var():
     with pytest.raises(requests.HTTPError) as excinfo:
         client.add_pod(pod_def)
 
-    print('A pod with an inaccessible secret could not be deployed because: {}'.format(excinfo.value))
+    print(
+        f'A pod with an inaccessible secret could not be deployed because: {excinfo.value}'
+    )
+
     assert excinfo.value.response.status_code == 422
-    assert 'Secret {} is not accessible'.format(secret_name) in excinfo.value.response.text
+    assert f'Secret {secret_name} is not accessible' in excinfo.value.response.text
 
 
 @dcos_1_9

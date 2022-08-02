@@ -14,7 +14,7 @@ jenkins_github = {
 
 
 def main(gh_user, gh_password, commit, status, target_url, context):
-    uri = 'https://api.github.com/repos/mesosphere/marathon/statuses/{}'.format(commit)
+    uri = f'https://api.github.com/repos/mesosphere/marathon/statuses/{commit}'
     data = {
         'state': jenkins_github[status],
         'target_url': target_url,

@@ -10,7 +10,7 @@ class ServiceManager(object):
     """A manager for DC/OS services"""
 
     def __init__(self, base_url=None):
-        self.base_url = base_url if base_url else dcos_service_url('cosmos')
+        self.base_url = base_url or dcos_service_url('cosmos')
         self.cosmos = cosmos.Cosmos(self.base_url)
 
     def enabled(self):
@@ -48,9 +48,8 @@ class ServiceManager(object):
         except (DCOSAuthenticationException, DCOSAuthorizationException):
             raise
         except DCOSHTTPException as e:
-            if e.status() == 404:
-                message = 'Your version of DC/OS ' \
-                          'does not support this operation'
-                raise DCOSException(message)
-            else:
+            if e.status() != 404:
                 return e.response
+            message = 'Your version of DC/OS ' \
+                          'does not support this operation'
+            raise DCOSException(message)

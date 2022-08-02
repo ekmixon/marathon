@@ -23,20 +23,13 @@ def docker_version(host=None, component='server'):
         :rtype: str
     """
 
-    if component.lower() == 'client':
-        component = 'Client'
-    else:
-        component = 'Server'
-
+    component = 'Client' if component.lower() == 'client' else 'Server'
     # sudo is required for non-coreOS installs
     command = 'sudo docker version -f {{.{}.Version}}'.format(component)
 
     success, output = run_command_on_master(command, None, None, False)
 
-    if success:
-        return output
-    else:
-        return 'unknown'
+    return output if success else 'unknown'
 
 
 def docker_client_version(host):
@@ -78,8 +71,7 @@ def create_docker_credentials_file(
     """
 
     import base64
-    auth_hash = base64.b64encode(
-        '{}:{}'.format(username, password).encode()).decode()
+    auth_hash = base64.b64encode(f'{username}:{password}'.encode()).decode()
 
     config_json = {
         "auths": {

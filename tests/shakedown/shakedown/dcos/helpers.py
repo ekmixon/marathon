@@ -24,27 +24,23 @@ def get_transport(host, username, key):
     """
 
     if host == master_ip():
-        transport = paramiko.Transport(host)
-    else:
+        return paramiko.Transport(host)
+    logger.debug('Connecting to %s@%s with key %s', username, master_ip(), key)
 
-        logger.debug('Connecting to %s@%s with key %s', username, master_ip(), key)
+    transport_master = paramiko.Transport(master_ip())
+    transport_master = start_transport(transport_master, username, key)
 
-        transport_master = paramiko.Transport(master_ip())
-        transport_master = start_transport(transport_master, username, key)
+    if not transport_master.is_authenticated():
+        logger.error('unable to authenticate %s@%s with key %s', username, master_ip(), key)
+        return False
 
-        if not transport_master.is_authenticated():
-            logger.error('unable to authenticate %s@%s with key %s', username, master_ip(), key)
-            return False
+    try:
+        channel = transport_master.open_channel('direct-tcpip', (host, 22), ('127.0.0.1', 0))
+    except paramiko.SSHException:
+        logger.error('unable to connect to %s', host)
+        return False
 
-        try:
-            channel = transport_master.open_channel('direct-tcpip', (host, 22), ('127.0.0.1', 0))
-        except paramiko.SSHException:
-            logger.error('unable to connect to %s', host)
-            return False
-
-        transport = paramiko.Transport(channel)
-
-    return transport
+    return paramiko.Transport(channel)
 
 
 def start_transport(transport, username, key):
@@ -71,7 +67,6 @@ def start_transport(transport, username, key):
             break
         except paramiko.AuthenticationException:
             logger.exception('Could authenticate with provided ssh key.')
-            pass
     else:
         raise ValueError('No valid key supplied')
 

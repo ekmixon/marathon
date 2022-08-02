@@ -59,13 +59,7 @@ def constraints(name, operator, value=None):
 
 
 def pod_constraints(name, operator, value=None):
-    constraints = {
-        'fieldName': name,
-        'operator': operator,
-        'value': value
-    }
-
-    return constraints
+    return {'fieldName': name, 'operator': operator, 'value': value}
 
 
 def unique_host_constraint():
@@ -74,12 +68,11 @@ def unique_host_constraint():
 
 @retrying.retry(wait_fixed=1000, stop_max_attempt_number=60, retry_on_exception=ignore_exception)
 def assert_http_code(url, http_code='200'):
-    cmd = r'curl -s -o /dev/null -w "%{http_code}"'
-    cmd = cmd + ' {}'.format(url)
+    cmd = r'curl -s -o /dev/null -w "%{http_code}"' + f' {url}'
     status, output = run_command_on_master(cmd)
 
-    assert status, "{} failed".format(cmd)
-    assert output == http_code, "Got {} status code".format(output)
+    assert status, f"{cmd} failed"
+    assert output == http_code, f"Got {output} status code"
 
 
 def add_role_constraint_to_app_def(app_def, roles=['*']):
@@ -113,7 +106,7 @@ def health_check(path='/', protocol='HTTP', port_index=0, failures=1, timeout=2)
 
 def external_volume_mesos_app(volume_name=None):
     if volume_name is None:
-        volume_name = 'marathon-si-test-vol-{}'.format(uuid.uuid4().hex)
+        volume_name = f'marathon-si-test-vol-{uuid.uuid4().hex}'
 
     return
 
@@ -140,7 +133,7 @@ def cluster_info(mom_name='marathon-user'):
         with marathon_on_marathon(mom_name) as client:
             try:
                 about = client.get_about()
-                logger.info("Marathon MoM version: {}".format(about.get("version")))
+                logger.info(f'Marathon MoM version: {about.get("version")}')
             except Exception:
                 logger.info("Marathon MoM not present")
     else:
@@ -158,11 +151,7 @@ def ip_other_than_mom():
     mom_ip = ip_of_mom()
 
     agents = get_private_agents()
-    for agent in agents:
-        if agent != mom_ip:
-            return agent
-
-    return None
+    return next((agent for agent in agents if agent != mom_ip), None)
 
 
 def ip_of_mom():
@@ -184,8 +173,6 @@ def ensure_mom():
             deployment_wait(service_id='/marathon-user')
         except Exception:
             logger.exception('Error while waiting for MoM to deploy')
-            pass
-
         if not wait_for_service_endpoint('marathon-user', path="ping"):
             logger.error('Timeout waiting for endpoint')
 
@@ -207,14 +194,14 @@ def cpus_on_agent(hostname):
 
 
 def systemctl_master(command='restart'):
-    run_command_on_master('sudo systemctl {} dcos-mesos-master'.format(command))
+    run_command_on_master(f'sudo systemctl {command} dcos-mesos-master')
 
 
 def block_iptable_rules_for_seconds(host, port_number, sleep_seconds, block_input=True, block_output=True):
     """ For testing network partitions we alter iptables rules to block ports for some time.
         We do that as a single SSH command because otherwise it makes it hard to ensure that iptable rules are restored.
     """
-    filename = 'iptables-{}.rules'.format(uuid.uuid4().hex)
+    filename = f'iptables-{uuid.uuid4().hex}.rules'
     cmd = """
           if [ ! -e {backup} ] ; then sudo iptables-save > {backup} ; fi;
           {block}
@@ -228,8 +215,18 @@ def block_iptable_rules_for_seconds(host, port_number, sleep_seconds, block_inpu
 
 def iptables_block_string(block_input, block_output, port):
     """ Produces a string of iptables blocking command that can be executed on an agent. """
-    block_input_str = "sudo iptables -I INPUT -p tcp --dport {} -j DROP;".format(port) if block_input else ""
-    block_output_str = "sudo iptables -I OUTPUT -p tcp --dport {} -j DROP;".format(port) if block_output else ""
+    block_input_str = (
+        f"sudo iptables -I INPUT -p tcp --dport {port} -j DROP;"
+        if block_input
+        else ""
+    )
+
+    block_output_str = (
+        f"sudo iptables -I OUTPUT -p tcp --dport {port} -j DROP;"
+        if block_output
+        else ""
+    )
+
     return block_input_str + block_output_str
 
 
@@ -248,9 +245,8 @@ def wait_for_task(service, task, timeout_sec=120):
 
         if response is not None and response['state'] == 'TASK_RUNNING':
             return response
-        else:
-            time.sleep(5)
-            now = time.time()
+        time.sleep(5)
+        now = time.time()
 
     return None
 
@@ -268,13 +264,8 @@ def clear_pods():
 
 def get_pod_tasks(pod_id):
     pod_id = pod_id.lstrip('/')
-    pod_tasks = []
     tasks = get_marathon_tasks()
-    for task in tasks:
-        if task['discovery']['name'] == pod_id:
-            pod_tasks.append(task)
-
-    return pod_tasks
+    return [task for task in tasks if task['discovery']['name'] == pod_id]
 
 
 def assert_app_tasks_running(client, app_def):
@@ -296,14 +287,14 @@ def assert_app_tasks_healthy(client, app_def):
 def get_marathon_leader_not_on_master_leader_node():
     marathon_leader = marathon_leader_ip()
     master_leader = master_leader_ip()
-    logger.info('marathon leader: {}'.format(marathon_leader))
-    logger.info('mesos leader: {}'.format(master_leader))
+    logger.info(f'marathon leader: {marathon_leader}')
+    logger.info(f'mesos leader: {master_leader}')
 
     if marathon_leader == master_leader:
         delete_marathon_path('v2/leader')
         wait_for_service_endpoint('marathon', timedelta(minutes=5).total_seconds(), path="ping")
         marathon_leader = assert_marathon_leadership_changed(marathon_leader)
-        logger.info('switched leader to: {}'.format(marathon_leader))
+        logger.info(f'switched leader to: {marathon_leader}')
 
     return marathon_leader
 
@@ -331,11 +322,14 @@ def is_enterprise_cli_package_installed():
     """Returns `True` if `dcos-enterprise-cli` package is installed."""
     with attached_cli():
         stdout, stderr, return_code = run_dcos_command('package list --json')
-        logger.info('package list command returned code:{}, stderr:{}, stdout: {}'.format(return_code, stderr, stdout))
+        logger.info(
+            f'package list command returned code:{return_code}, stderr:{stderr}, stdout: {stdout}'
+        )
+
         try:
             result_json = json.loads(stdout)
         except JSONDecodeError as error:
-            raise DCOSException('Could not parse: "{}"'.format(stdout)) from error
+            raise DCOSException(f'Could not parse: "{stdout}"') from error
         return any(cmd['name'] == 'dcos-enterprise-cli' for cmd in result_json)
 
 
@@ -346,10 +340,13 @@ def create_docker_pull_config_json(username, password):
        :param password: password for a private Docker registry
        :return: Docker config.json
     """
-    logger.info('Creating a config.json content for dockerhub username {}'.format(username))
+    logger.info(
+        f'Creating a config.json content for dockerhub username {username}'
+    )
+
 
     import base64
-    auth_hash = base64.b64encode('{}:{}'.format(username, password).encode()).decode()
+    auth_hash = base64.b64encode(f'{username}:{password}'.encode()).decode()
 
     return {
         "auths": {
@@ -368,7 +365,10 @@ def create_docker_credentials_file(username, password, file_name='docker.tar.gz'
        :type command: str
     """
 
-    logger.info('Creating a tarball {} with json credentials for dockerhub username {}'.format(file_name, username))
+    logger.info(
+        f'Creating a tarball {file_name} with json credentials for dockerhub username {username}'
+    )
+
     config_json_filename = 'config.json'
 
     config_json = create_docker_pull_config_json(username, password)
@@ -384,7 +384,7 @@ def create_docker_credentials_file(username, password, file_name='docker.tar.gz'
             tar.add(config_json_filename, arcname='.docker/config.json')
             tar.close()
     except Exception as e:
-        logger.info('Failed to create a docker credentils file {}'.format(e))
+        logger.info(f'Failed to create a docker credentils file {e}')
         raise e
     finally:
         os.remove(config_json_filename)
@@ -398,16 +398,19 @@ def copy_docker_credentials_file(agents, file_name='docker.tar.gz'):
        :type agents: list
     """
 
-    assert os.path.isfile(file_name), "Failed to upload credentials: file {} not found".format(file_name)
+    assert os.path.isfile(
+        file_name
+    ), f"Failed to upload credentials: file {file_name} not found"
+
 
     # Upload docker.tar.gz to all private agents
     try:
         logger.info('Uploading tarball with docker credentials to all private agents...')
         for agent in agents:
-            logger.info("Copying docker credentials to {}".format(agent))
+            logger.info(f"Copying docker credentials to {agent}")
             copy_file_to_agent(agent, file_name)
     except Exception as e:
-        logger.info('Failed to upload {} to agent: {}'.format(file_name, agent))
+        logger.info(f'Failed to upload {file_name} to agent: {agent}')
         raise e
     finally:
         os.remove(file_name)
@@ -437,9 +440,12 @@ def delete_secret(secret_name):
        :param secret_name: secret name
        :type secret_name: str
     """
-    logger.info('Removing existing secret {}'.format(secret_name))
+    logger.info(f'Removing existing secret {secret_name}')
     with attached_cli():
-        stdout, stderr, return_code = run_dcos_command('security secrets delete {}'.format(secret_name))
+        stdout, stderr, return_code = run_dcos_command(
+            f'security secrets delete {secret_name}'
+        )
+
         assert return_code == 0, "Failed to remove existing secret"
 
 
@@ -455,16 +461,17 @@ def create_secret(name, value=None, description=None):
        :param description: option secret description
        :type description: str
     """
-    logger.info('Creating new secret {}:{}'.format(name, value))
+    logger.info(f'Creating new secret {name}:{value}')
 
-    value_opt = '-v {}'.format(shlex.quote(value)) if value else ''
-    description_opt = '-d "{}"'.format(description) if description else ''
+    value_opt = f'-v {shlex.quote(value)}' if value else ''
+    description_opt = f'-d "{description}"' if description else ''
 
     with attached_cli():
-        stdout, stderr, return_code = run_dcos_command('security secrets create {} {} "{}"'.format(
-            value_opt,
-            description_opt,
-            name), print_output=True)
+        stdout, stderr, return_code = run_dcos_command(
+            f'security secrets create {value_opt} {description_opt} "{name}"',
+            print_output=True,
+        )
+
         assert return_code == 0, "Failed to create a secret"
 
 
@@ -487,14 +494,16 @@ def create_sa_secret(secret_name, service_account, strict=False, private_key_fil
     """
     assert os.path.isfile(private_key_filename), "Failed to create secret: private key not found"
 
-    logger.info('Creating new sa-secret {} for service-account: {}'.format(secret_name, service_account))
+    logger.info(
+        f'Creating new sa-secret {secret_name} for service-account: {service_account}'
+    )
+
     strict_opt = '--strict' if strict else ''
     with attached_cli():
-        stdout, stderr, return_code = run_dcos_command('security secrets create-sa-secret {} {} {} {}'.format(
-            strict_opt,
-            private_key_filename,
-            service_account,
-            secret_name))
+        stdout, stderr, return_code = run_dcos_command(
+            f'security secrets create-sa-secret {strict_opt} {private_key_filename} {service_account} {secret_name}'
+        )
+
 
     os.remove(private_key_filename)
     assert return_code == 0, "Failed to create a secret"
@@ -521,9 +530,9 @@ def delete_service_account(service_account):
        :param service_account: service account name
        :type service_account: str
     """
-    logger.info('Removing existing service account {}'.format(service_account))
+    logger.info(f'Removing existing service account {service_account}')
     with attached_cli():
-        cmd = 'security org service-accounts delete {}'.format(service_account)
+        cmd = f'security org service-accounts delete {service_account}'
         stdout, stderr, return_code = run_dcos_command(cmd)
         assert return_code == 0, "Failed to create a service account"
 
@@ -548,14 +557,17 @@ def create_service_account(service_account, private_key_filename='private-key.pe
     """
     logger.info('Creating a key pair for the service account')
     with attached_cli():
-        cmd = 'security org service-accounts keypair {} {}'.format(private_key_filename, public_key_filename)
+        cmd = f'security org service-accounts keypair {private_key_filename} {public_key_filename}'
+
         run_dcos_command(cmd)
         assert os.path.isfile(private_key_filename), "Private key of the service account key pair not found"
         assert os.path.isfile(public_key_filename), "Public key of the service account key pair not found"
 
-        logger.info('Creating {} service account'.format(service_account))
-        stdout, stderr, return_code = run_dcos_command('security org service-accounts create -p {} -d "{}" {}'.format(
-                public_key_filename, account_description, service_account))
+        logger.info(f'Creating {service_account} service account')
+        stdout, stderr, return_code = run_dcos_command(
+            f'security org service-accounts create -p {public_key_filename} -d "{account_description}" {service_account}'
+        )
+
 
         os.remove(public_key_filename)
         assert return_code == 0
@@ -567,19 +579,28 @@ def set_service_account_permissions(service_account, resource='dcos:superuser', 
        https://docs.mesosphere.com/1.9/administration/id-and-access-mgt/permissions/user-service-perms/
     """
     try:
-        logger.info('Granting {} permissions to {}/users/{}'.format(action, resource, service_account))
-        url = dcos_url_path('acs/api/v1/acls/{}/users/{}/{}'.format(resource, service_account, action))
+        logger.info(
+            f'Granting {action} permissions to {resource}/users/{service_account}'
+        )
+
+        url = dcos_url_path(
+            f'acs/api/v1/acls/{resource}/users/{service_account}/{action}'
+        )
+
         auth = DCOSAcsAuth(dcos_acs_token())
         req = requests.put(url, auth=auth, verify=verify_ssl())
         req.raise_for_status()
 
-        msg = 'Failed to grant permissions to the service account: {}, {}'.format(req, req.text)
+        msg = f'Failed to grant permissions to the service account: {req}, {req.text}'
         assert req.status_code == 204, msg
     except requests.HTTPError as e:
         if (e.response.status_code == 409):
-            logger.info('Service account {} already has {} permissions set'.format(service_account, resource))
+            logger.info(
+                f'Service account {service_account} already has {resource} permissions set'
+            )
+
         else:
-            logger.error("Unexpected HTTP error: {}".format(e.response))
+            logger.error(f"Unexpected HTTP error: {e.response}")
             raise
     except Exception:
         logger.exception("Unexpected error when setting service account permissions")
@@ -592,21 +613,21 @@ def add_acs_resource(resource):
     """
     import json
     try:
-        logger.info('Adding ACS resource: {}'.format(resource))
-        url = dcos_url_path('acs/api/v1/acls/{}'.format(resource))
+        logger.info(f'Adding ACS resource: {resource}')
+        url = dcos_url_path(f'acs/api/v1/acls/{resource}')
         auth = DCOSAcsAuth(dcos_acs_token())
         req = requests.put(url, data=json.dumps({'description': resource}),
                            headers={'Content-Type': 'application/json'}, auth=auth, verify=verify_ssl())
         req.raise_for_status()
-        assert req.status_code == 201, 'Failed create ACS resource: {}, {}'.format(req, req.text)
+        assert req.status_code == 201, f'Failed create ACS resource: {req}, {req.text}'
     except requests.HTTPError as e:
         if (e.response.status_code == 409):
-            logger.info('ACS resource {} already exists'.format(resource))
+            logger.info(f'ACS resource {resource} already exists')
         else:
-            logger.error("Unexpected HTTP error: {}, {}".format(e.response, e.response.text))
+            logger.error(f"Unexpected HTTP error: {e.response}, {e.response.text}")
             raise
     except Exception:
-        logger.exception("Unexpected error while adding ACS resource {}".format(resource))
+        logger.exception(f"Unexpected error while adding ACS resource {resource}")
         raise
 
 
@@ -615,14 +636,14 @@ def add_dcos_marathon_user_acls(user='root'):
 
 
 def add_service_account_user_acls(service_account, user='root'):
-    resource = 'dcos:mesos:master:task:user:{}'.format(user)
+    resource = f'dcos:mesos:master:task:user:{user}'
     add_acs_resource(resource)
     set_service_account_permissions(service_account, resource, action='create')
 
 
 def get_marathon_endpoint(path, marathon_name='marathon'):
     """Returns the url for the marathon endpoint."""
-    return dcos_url_path('service/{}/{}'.format(marathon_name, path))
+    return dcos_url_path(f'service/{marathon_name}/{path}')
 
 
 def http_get_marathon_path(name, marathon_name='marathon'):
@@ -670,17 +691,19 @@ def __get_all_agents():
     """Provides all agent json in the cluster which can be used for filtering"""
 
     client = mesos.DCOSClient()
-    agents = client.get_state_summary()['slaves']
-    return agents
+    return client.get_state_summary()['slaves']
 
 
 def agent_hostname_by_id(agent_id):
     """Given a agent_id provides the agent ip"""
-    for agent in __get_all_agents():
-        if agent['id'] == agent_id:
-            return agent['hostname']
-
-    return None
+    return next(
+        (
+            agent['hostname']
+            for agent in __get_all_agents()
+            if agent['id'] == agent_id
+        ),
+        None,
+    )
 
 
 @retrying.retry(wait_fixed=1000, stop_max_attempt_number=60, retry_on_exception=ignore_exception)
@@ -705,7 +728,7 @@ def __marathon_leadership_changed_in_marathon_api(original_leader):
     """
     # Leader is returned like this 10.0.6.88:8080 - we want just the IP
     current_leader = marathon.create_client().get_leader().split(':', 1)[0]
-    logger.info('Current leader according to marathon API: {}'.format(current_leader))
+    logger.info(f'Current leader according to marathon API: {current_leader}')
     assert original_leader != current_leader
     return current_leader
 
@@ -715,8 +738,10 @@ def assert_marathon_leadership_changed(original_leader):
     """
     new_leader_marathon = __marathon_leadership_changed_in_marathon_api(original_leader)
     new_leader_dns = __marathon_leadership_changed_in_mesosDNS(original_leader)
-    assert new_leader_marathon == new_leader_dns, "Different leader IPs returned by Marathon ({}) and MesosDNS ({})."\
-        .format(new_leader_marathon, new_leader_dns)
+    assert (
+        new_leader_marathon == new_leader_dns
+    ), f"Different leader IPs returned by Marathon ({new_leader_marathon}) and MesosDNS ({new_leader_dns})."
+
     return new_leader_dns
 
 
@@ -733,7 +758,9 @@ def running_task_status(task_statuses):
         if task_status['state'] == "TASK_RUNNING":
             return task_status
 
-    assert False, "Did not find a TASK_RUNNING status in task statuses: %s" % (task_statuses,)
+    assert (
+        False
+    ), f"Did not find a TASK_RUNNING status in task statuses: {task_statuses}"
 
 
 def task_by_name(tasks, name):
@@ -743,12 +770,14 @@ def task_by_name(tasks, name):
         if task['name'] == name:
             return task
 
-    assert False, "Did not find task with name %s in this list of tasks: %s" % (name, tasks,)
+    assert (
+        False
+    ), f"Did not find task with name {name} in this list of tasks: {tasks}"
 
 
 async def find_event(event_type, event_stream):
     async for event in event_stream:
-        logger.info('Check event: {}'.format(event))
+        logger.info(f'Check event: {event}')
         if event['eventType'] == event_type:
             return event
 
@@ -769,7 +798,7 @@ def kill_process_on_host(hostname, pattern):
     status, stdout = run_command_on_agent(hostname, cmd)
     pids = [p.strip() for p in stdout.splitlines()]
     if pids:
-        logger.info("Killed pids: {}".format(", ".join(pids)))
+        logger.info(f'Killed pids: {", ".join(pids)}')
     else:
         logger.info("Killed no pids")
     return pids

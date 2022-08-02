@@ -1,5 +1,6 @@
 """Marathon pod acceptance tests for DC/OS."""
 
+
 import common
 import json
 import os
@@ -26,15 +27,15 @@ from fixtures import sse_events, wait_for_marathon_and_cleanup # NOQA F401
 logger = logging.getLogger(__name__)
 
 PACKAGE_NAME = 'marathon'
-DCOS_SERVICE_URL = dcos_service_url(PACKAGE_NAME) + "/"
+DCOS_SERVICE_URL = f"{dcos_service_url(PACKAGE_NAME)}/"
 
 
 def get_pods_url(path=""):
-    return "v2/pods/" + path
+    return f"v2/pods/{path}"
 
 
 def get_pod_status_url(pod_id):
-    path = pod_id + "/::status"
+    path = f"{pod_id}/::status"
     return get_pods_url(path)
 
 
@@ -46,13 +47,13 @@ def get_pod_status(pod_id):
 
 def get_pod_instances_url(pod_id, instance_id):
     # '/{id}::instances/{instance}':
-    path = pod_id + "/::instances/" + instance_id
+    path = f"{pod_id}/::instances/{instance_id}"
     return get_pods_url(path)
 
 
 def get_pod_versions_url(pod_id, version_id=""):
     # '/{id}::versions/{version_id}':
-    path = pod_id + "/::versions/" + version_id
+    path = f"{pod_id}/::versions/{version_id}"
     return get_pods_url(path)
 
 
@@ -179,8 +180,9 @@ def test_multi_instance_pod():
     deployment_wait(service_id=pod_id)
 
     status = get_pod_status(pod_id)
-    assert len(status["instances"]) == 3, \
-        "The number of instances is {}, but 3 was expected".format(len(status["instances"]))
+    assert (
+        len(status["instances"]) == 3
+    ), f'The number of instances is {len(status["instances"])}, but 3 was expected'
 
 
 @shakedown.dcos.cluster.dcos_1_9
@@ -196,16 +198,19 @@ def test_scale_up_pod():
     deployment_wait(service_id=pod_id)
 
     status = get_pod_status(pod_id)
-    assert len(status["instances"]) == 1, \
-        "The number of instances is {}, but 1 was expected".format(len(status["instances"]))
+    assert (
+        len(status["instances"]) == 1
+    ), f'The number of instances is {len(status["instances"])}, but 1 was expected'
+
 
     pod_def["scaling"]["instances"] = 3
     client.update_pod(pod_id, pod_def)
     deployment_wait(service_id=pod_id)
 
     status = get_pod_status(pod_id)
-    assert len(status["instances"]) == 3, \
-        "The number of instances is {}, but 3 was expected".format(len(status["instances"]))
+    assert (
+        len(status["instances"]) == 3
+    ), f'The number of instances is {len(status["instances"])}, but 3 was expected'
 
 
 @shakedown.dcos.cluster.dcos_1_9
@@ -221,16 +226,19 @@ def test_scale_down_pod():
     deployment_wait(service_id=pod_id)
 
     status = get_pod_status(pod_id)
-    assert len(status["instances"]) == 3, \
-        "The number of instances is {}, but 3 was expected".format(len(status["instances"]))
+    assert (
+        len(status["instances"]) == 3
+    ), f'The number of instances is {len(status["instances"])}, but 3 was expected'
+
 
     pod_def["scaling"]["instances"] = 1
     client.update_pod(pod_id, pod_def)
     deployment_wait(service_id=pod_id)
 
     status = get_pod_status(pod_id)
-    assert len(status["instances"]) == 1, \
-        "The number of instances is {}, but 1 was expected".format(len(status["instances"]))
+    assert (
+        len(status["instances"]) == 1
+    ), f'The number of instances is {len(status["instances"])}, but 1 was expected'
 
 
 @shakedown.dcos.cluster.dcos_1_9
@@ -260,13 +268,16 @@ def test_create_and_update_pod():
     deployment_wait(service_id=pod_id)
 
     versions = get_pod_versions(pod_id)
-    assert len(versions) == 2, "The number of versions is {}, but 2 was expected".format(len(versions))
+    assert (
+        len(versions) == 2
+    ), f"The number of versions is {len(versions)}, but 2 was expected"
+
 
     version1 = get_pod_version(pod_id, versions[0])
     version2 = get_pod_version(pod_id, versions[1])
-    assert version1["scaling"]["instances"] != version2["scaling"]["instances"], \
-        "Two pod versions have the same number of instances: {}, but they should not".format(
-            version1["scaling"]["instances"])
+    assert (
+        version1["scaling"]["instances"] != version2["scaling"]["instances"]
+    ), f'Two pod versions have the same number of instances: {version1["scaling"]["instances"]}, but they should not'
 
 
 # known to fail in strict mode
@@ -286,12 +297,17 @@ def test_two_pods_with_shared_volume():
     deployment_wait(service_id=pod_id)
 
     tasks = common.get_pod_tasks(pod_id)
-    assert len(tasks) == 2, "The number of tasks is {} after deployment, but 2 was expected".format(len(tasks))
+    assert (
+        len(tasks) == 2
+    ), f"The number of tasks is {len(tasks)} after deployment, but 2 was expected"
+
 
     time.sleep(4)
 
     tasks = common.get_pod_tasks(pod_id)
-    assert len(tasks) == 2, "The number of tasks is {} after sleeping, but 2 was expected".format(len(tasks))
+    assert (
+        len(tasks) == 2
+    ), f"The number of tasks is {len(tasks)} after sleeping, but 2 was expected"
 
 
 @shakedown.dcos.cluster.dcos_1_9
@@ -360,7 +376,9 @@ def test_pod_port_communication():
     deployment_wait(service_id=pod_id)
 
     tasks = common.get_pod_tasks(pod_id)
-    assert len(tasks) == 2, "The number of tasks is {} after deployment, but 2 was expected".format(len(tasks))
+    assert (
+        len(tasks) == 2
+    ), f"The number of tasks is {len(tasks)} after deployment, but 2 was expected"
 
 
 @shakedown.dcos.cluster.dcos_1_9
@@ -379,10 +397,15 @@ def test_pin_pod():
     deployment_wait(service_id=pod_id)
 
     tasks = common.get_pod_tasks(pod_id)
-    assert len(tasks) == 2, "The number of tasks is {} after deployment, but 2 was expected".format(len(tasks))
+    assert (
+        len(tasks) == 2
+    ), f"The number of tasks is {len(tasks)} after deployment, but 2 was expected"
+
 
     pod = client.list_pod()[0]
-    assert pod['instances'][0]['agentHostname'] == host, "The pod didn't get pinned to {}".format(host)
+    assert (
+        pod['instances'][0]['agentHostname'] == host
+    ), f"The pod didn't get pinned to {host}"
 
 
 @shakedown.dcos.cluster.dcos_1_9
@@ -426,13 +449,15 @@ def test_pod_with_container_network():
     task = common.task_by_name(common.get_pod_tasks(pod_id), "nginx")
 
     network_info = common.running_status_network_info(task['statuses'])
-    assert network_info['name'] == "dcos", \
-        "The network name is {}, but 'dcos' was expected".format(network_info['name'])
+    assert (
+        network_info['name'] == "dcos"
+    ), f"The network name is {network_info['name']}, but 'dcos' was expected"
+
 
     container_ip = network_info['ip_addresses'][0]['ip_address']
     assert container_ip is not None, "No IP address has been assigned to the pod's container"
 
-    url = "http://{}:80/".format(container_ip)
+    url = f"http://{container_ip}:80/"
     common.assert_http_code(url)
 
 
@@ -455,8 +480,10 @@ def test_pod_with_container_bridge_network():
 
     task = common.task_by_name(common.get_pod_tasks(pod_id), "nginx")
     network_info = common.running_status_network_info(task['statuses'])
-    assert network_info['name'] == "mesos-bridge", \
-        "The network is {}, but mesos-bridge was expected".format(network_info['name'])
+    assert (
+        network_info['name'] == "mesos-bridge"
+    ), f"The network is {network_info['name']}, but mesos-bridge was expected"
+
 
     # get the port on the host
     port = task['discovery']['ports']['ports'][0]['number']
@@ -469,7 +496,7 @@ def test_pod_with_container_bridge_network():
     container_ip = network_info['ip_addresses'][0]['ip_address']
     assert agent_ip != container_ip, "The container IP address is the same as the agent one"
 
-    url = "http://{}:{}/".format(agent_ip, port)
+    url = f"http://{agent_ip}:{port}/"
     common.assert_http_code(url)
 
 

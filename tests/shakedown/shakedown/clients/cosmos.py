@@ -22,11 +22,7 @@ class Cosmos(object):
     """
 
     def __init__(self, cosmos_url=None):
-        if cosmos_url is None:
-            self.cosmos_url = get_cosmos_url()
-        else:
-            self.cosmos_url = cosmos_url
-
+        self.cosmos_url = get_cosmos_url() if cosmos_url is None else cosmos_url
         self._rpc = rpcclient.create_client(self.cosmos_url)
 
         def _data(versions, http_method):
@@ -41,6 +37,12 @@ class Cosmos(object):
             :return:
             """
             return {'versions': versions, 'http_method': http_method}
+
+        # This structure holds information about an endpoint. Currently
+        # the information stored is the return type versions, and the
+        # http request method. These two field should be stored in a
+        # dictionary of the form:
+        # {'versions': versions, 'http_method': http_method}.
 
         # This structure holds information about an endpoint. Currently
         # the information stored is the return type versions, and the
@@ -180,10 +182,9 @@ class Cosmos(object):
             if not _matches_expected_response_header(headers,
                                                      response.headers):
                 raise DCOSException(
-                    'Server returned incorrect response type, '
-                    'expected {} but got {}'.format(
-                        headers.get('Accept'),
-                        response.headers.get('Content-Type')))
+                    f"Server returned incorrect response type, expected {headers.get('Accept')} but got {response.headers.get('Content-Type')}"
+                )
+
             return response
         except DCOSBadRequest as e:
             if len(headers_preference) > 1:
@@ -318,11 +319,7 @@ def _format_media_type(endpoint, version, suffix):
     """
     prefix = endpoint.replace('/', '.')
     separator = '-' if suffix else ''
-    return ('application/vnd.dcos.{}{}{}'
-            '+json;charset=utf-8;version={}').format(prefix,
-                                                     separator,
-                                                     suffix,
-                                                     version)
+    return f'application/vnd.dcos.{prefix}{separator}{suffix}+json;charset=utf-8;version={version}'
 
 
 def _matches_expected_response_header(request_headers, response_headers):
@@ -365,12 +362,8 @@ def _merge_dict(a, b):
     :return: the result of merging a with b
     :rtype: dict
     """
-    if a is None and b is None:
-        return {}
-
     if a is None:
-        return b.copy()
-
+        return {} if b is None else b.copy()
     if b is None:
         return a.copy()
 

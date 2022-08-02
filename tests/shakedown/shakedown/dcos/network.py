@@ -28,7 +28,7 @@ def run_iptables(host, rule):
     """ iptables is challenging to abstract.  This function takes a rule
         '-I INPUT -p tcp --dport 22 -j ACCEPT' and runs it on the agent.
     """
-    ip_table_cmd = 'sudo iptables {}'.format(rule)
+    ip_table_cmd = f'sudo iptables {rule}'
     run_command_on_agent(host, ip_table_cmd)
 
 

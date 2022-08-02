@@ -18,9 +18,11 @@ def get_public_agents():
     agent_list = []
     agents = _get_all_agents()
     for agent in agents:
-        for reservation in agent["reserved_resources"]:
-            if "slave_public" in reservation:
-                agent_list.append(agent["hostname"])
+        agent_list.extend(
+            agent["hostname"]
+            for reservation in agent["reserved_resources"]
+            if "slave_public" in reservation
+        )
 
     return agent_list
 
@@ -31,13 +33,13 @@ def get_private_agents():
     agent_list = []
     agents = _get_all_agents()
     for agent in agents:
-        if(len(agent["reserved_resources"]) == 0):
+        if (len(agent["reserved_resources"]) == 0):
             agent_list.append(agent["hostname"])
         else:
-            private = True
-            for reservation in agent["reserved_resources"]:
-                if("slave_public" in reservation):
-                    private = False
+            private = all(
+                "slave_public" not in reservation
+                for reservation in agent["reserved_resources"]
+            )
 
             if(private):
                 agent_list.append(agent["hostname"])
@@ -48,20 +50,15 @@ def get_private_agents():
 def get_agents():
     """Provides a list of hostnames / IPs of all agents in the cluster"""
 
-    agent_list = []
     agents = _get_all_agents()
-    for agent in agents:
-        agent_list.append(agent["hostname"])
-
-    return agent_list
+    return [agent["hostname"] for agent in agents]
 
 
 def _get_all_agents():
     """Provides all agent json in the cluster which can be used for filtering"""
 
     client = mesos.DCOSClient()
-    agents = client.get_state_summary()['slaves']
-    return agents
+    return client.get_state_summary()['slaves']
 
 
 ALLOW_SSH = '-I INPUT -p tcp --dport 22 -j ACCEPT'
@@ -115,11 +112,14 @@ def kill_process_on_host(
         :param pattern: a regular expression matching the name of the process to kill
     """
 
-    status, stdout = run_command_on_agent(hostname, "ps aux | grep -v grep | grep '{}'".format(pattern))
+    status, stdout = run_command_on_agent(
+        hostname, f"ps aux | grep -v grep | grep '{pattern}'"
+    )
+
     pids = [p.strip().split()[1] for p in stdout.splitlines()]
 
     for pid in pids:
-        status, stdout = run_command_on_agent(hostname, "sudo kill -9 {}".format(pid))
+        status, stdout = run_command_on_agent(hostname, f"sudo kill -9 {pid}")
         if status:
             logger.info("Killed pid: %s", pid)
         else:
@@ -132,11 +132,11 @@ def kill_process_from_pid_file_on_host(hostname, pid_file='app.pid'):
     :param hostname: the hostname or ip address of the host on which the process will be killed
     :param pid_file: pid file to use holding the pid number to kill
     """
-    status, pid = run_command_on_agent(hostname, 'cat {}'.format(pid_file))
-    status, stdout = run_command_on_agent(hostname, "sudo kill -9 {}".format(pid))
+    status, pid = run_command_on_agent(hostname, f'cat {pid_file}')
+    status, stdout = run_command_on_agent(hostname, f"sudo kill -9 {pid}")
     if status:
         logger.info("Killed pid: %s", pid)
-        run_command_on_agent(hostname, 'rm {}'.format(pid_file))
+        run_command_on_agent(hostname, f'rm {pid_file}')
     else:
         logger.info("Unable to kill pid: %s", pid)
 
@@ -226,8 +226,8 @@ def required_public_agents(count):
 
 
 def private_agents(count=1):
-    return pytest.mark.skipif('required_private_agents({})'.format(count))
+    return pytest.mark.skipif(f'required_private_agents({count})')
 
 
 def public_agents(count=1):
-    return pytest.mark.skipif('required_public_agents({})'.format(count))
+    return pytest.mark.skipif(f'required_public_agents({count})')

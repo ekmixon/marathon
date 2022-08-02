@@ -92,10 +92,10 @@ def package(request):
     yield package_name
     try:
         uninstall_package_and_wait(package_name)
-        delete_persistent_data('{}-role'.format(package_name), 'dcos-service-{}'.format(package_name))
+        delete_persistent_data(f'{package_name}-role', f'dcos-service-{package_name}')
     except Exception:
         # cleanup does NOT fail the test
-        logger.exception('Faild to uninstall {} package'.format(package_name))
+        logger.exception(f'Faild to uninstall {package_name} package')
 
 
 def test_install_universe_package(package):
@@ -118,7 +118,7 @@ def uninstall(service, package=PACKAGE_NAME):
             cosmos_pm.uninstall_app(package, True, service)
             deployment_wait()
             assert common.wait_for_service_endpoint_removal('test-marathon')
-            delete_zk_node('/universe/{}'.format(service))
+            delete_zk_node(f'/universe/{service}')
 
     except Exception:
         pass

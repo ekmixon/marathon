@@ -9,7 +9,7 @@ def pods_dir():
 
 
 def load_pod(pod_name):
-    pod_path = os.path.join(pods_dir(), "{}.json".format(pod_name))
+    pod_path = os.path.join(pods_dir(), f"{pod_name}.json")
     pod = get_resource(pod_path)
     pod['id'] = make_id(pod_name)
     return pod
@@ -17,7 +17,7 @@ def load_pod(pod_name):
 
 def simple_pod(pod_id=None):
     if pod_id is None:
-        pod_id = '/simple-pod-{}'.format(uuid.uuid4().hex)
+        pod_id = f'/simple-pod-{uuid.uuid4().hex}'
     pod = load_pod('simple-pod')
     pod['id'] = pod_id
     return pod

@@ -19,7 +19,7 @@ def attached_cli():
 
     The CLI setup command should be idempotent. So it is save to call this method multiple times.
     """
-    cmd = 'cluster setup {} --no-check '.format(dcos_url())
+    cmd = f'cluster setup {dcos_url()} --no-check '
     run_dcos_command(cmd)
     yield
 
@@ -41,7 +41,7 @@ def run_dcos_command(command, raise_on_error=False, print_output=True):
     call = shlex.split(command)
     call.insert(0, 'dcos')
 
-    print("\n>>{}\n".format(' '.join(call)))
+    print(f"\n>>{' '.join(call)}\n")
 
     proc = subprocess.Popen(call, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     output, error = proc.communicate()
@@ -53,7 +53,9 @@ def run_dcos_command(command, raise_on_error=False, print_output=True):
         print(stdout, stderr, return_code)
 
     if return_code != 0 and raise_on_error:
-        raise DCOSException('Got error code {} when running command "dcos {}":\nstdout: "{}"\nstderr: "{}"'.format(
-                            return_code, command, stdout, stderr))
+        raise DCOSException(
+            f'Got error code {return_code} when running command "dcos {command}":\nstdout: "{stdout}"\nstderr: "{stderr}"'
+        )
+
 
     return stdout, stderr, return_code

@@ -105,7 +105,7 @@ def _metadata_helper(json_path):
         this was introduced in dcos-1.9.  Clusters prior to 1.9 and missing metadata
         will return None
     """
-    url = dcos_url_path('dcos-metadata/{}'.format(json_path))
+    url = dcos_url_path(f'dcos-metadata/{json_path}')
     auth = DCOSAcsAuth(dcos_acs_token())
     try:
         response = requests.get(url, auth=auth, verify=verify_ssl())
@@ -114,8 +114,6 @@ def _metadata_helper(json_path):
             return response.json()
     except Exception:
         logger.exception('Could not request cluster metadata from %s', url)
-        pass
-
     return None
 
 
@@ -123,11 +121,7 @@ def ee_version():
     """ Provides the type or version of EE if it is Enterprise.
         Useful for @pytest.mark.skipif("ee_version() in {'strict', 'disabled'}")
     """
-    metadata = bootstrap_metadata()
-    if metadata:
-        return metadata['security']
-    else:
-        return None
+    return metadata['security'] if (metadata := bootstrap_metadata()) else None
 
 
 def is_strict():
@@ -135,15 +129,11 @@ def is_strict():
 
 
 def mesos_logging_strategy():
-    metadata = ui_config_metadata()
-
-    if metadata:
+    if metadata := ui_config_metadata():
         try:
             return metadata['uiConfiguration']['plugins']['mesos']['logging-strategy']
         except Exception:
             logger.exception('Could not fetch Mesos logging strategy.')
-            pass
-
     return None
 
 
@@ -216,13 +206,13 @@ def get_reserved_resources(role=None):
     :return: resources(cpu,mem)
     :rtype: Resources
     """
-    rtype = 'reserved_resources'
     cpus = 0.0
     mem = 0.0
     summary = DCOSClient().get_state_summary()
 
     if 'slaves' in summary:
         agents = summary.get('slaves')
+        rtype = 'reserved_resources'
         for agent in agents:
             resource_reservations = agent.get(rtype)
             reservations = []
@@ -249,10 +239,10 @@ class Resources(object):
         self.mem = mem
 
     def __str__(self):
-        return "cpus: {}, mem: {}".format(self.cpus, self.mem)
+        return f"cpus: {self.cpus}, mem: {self.mem}"
 
     def __repr__(self):
-        return "cpus: {}, mem: {}".format(self.cpus, self.mem)
+        return f"cpus: {self.cpus}, mem: {self.mem}"
 
     def __sub__(self, other):
         total_cpu = self.cpus - other.cpus

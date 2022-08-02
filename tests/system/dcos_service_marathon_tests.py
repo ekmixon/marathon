@@ -86,7 +86,10 @@ def test_framework_has_single_instance():
     try:
         client.add_app(fw)
     except requests.HTTPError as e:
-        assert e.response.status_code == 422, "HTTP status code {} is NOT 422".format(e.response.status_code)
+        assert (
+            e.response.status_code == 422
+        ), f"HTTP status code {e.response.status_code} is NOT 422"
+
     else:
         assert False, "Exception was expected"
 

@@ -68,10 +68,7 @@ class SSEClient(object):
                     # From the spec:
                     # "If value starts with a single U+0020 SPACE character,
                     # remove it from value."
-                    if data[1].startswith(' '):
-                        value = data[1][1:]
-                    else:
-                        value = data[1]
+                    value = data[1][1:] if data[1].startswith(' ') else data[1]
                 else:
                     # If no value is present after the separator,
                     # assume an empty value.
@@ -90,7 +87,7 @@ class SSEClient(object):
 
             # If the data field ends with a newline, remove it.
             if event.data.endswith('\n'):
-                event.data = event.data[0:-1]
+                event.data = event.data[:-1]
 
             # Empty event names default to 'message'
             event.event = event.event or 'message'

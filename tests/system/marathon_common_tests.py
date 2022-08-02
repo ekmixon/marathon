@@ -45,7 +45,10 @@ def test_launch_mesos_container():
     tasks = client.get_tasks(app_id)
     app = client.get_app(app_id)
 
-    assert len(tasks) == 1, "The number of tasks is {} after deployment, but only 1 was expected".format(len(tasks))
+    assert (
+        len(tasks) == 1
+    ), f"The number of tasks is {len(tasks)} after deployment, but only 1 was expected"
+
     assert app['container']['type'] == 'MESOS', "The container type is not MESOS"
 
 
@@ -62,7 +65,10 @@ def test_launch_docker_container():
     tasks = client.get_tasks(app_id)
     app = client.get_app(app_id)
 
-    assert len(tasks) == 1, "The number of tasks is {} after deployment, but only 1 was expected".format(len(tasks))
+    assert (
+        len(tasks) == 1
+    ), f"The number of tasks is {len(tasks)} after deployment, but only 1 was expected"
+
     assert app['container']['type'] == 'DOCKER', "The container type is not DOCKER"
 
 
@@ -173,11 +179,12 @@ def test_docker_port_mappings():
     tasks = client.get_tasks(app_id)
     host = tasks[0]['host']
     port = tasks[0]['ports'][0]
-    cmd = r'curl -s -w "%{http_code}"'
-    cmd = cmd + ' {}:{}/.dockerenv'.format(host, port)
+    cmd = r'curl -s -w "%{http_code}"' + f' {host}:{port}/.dockerenv'
     status, output = run_command_on_agent(host, cmd)
 
-    assert status and output == "200", "HTTP status code is {}, but 200 was expected".format(output)
+    assert (
+        status and output == "200"
+    ), f"HTTP status code is {output}, but 200 was expected"
 
 
 def test_docker_dns_mapping(marathon_service_name):
@@ -225,8 +232,15 @@ def test_ui_available(marathon_service_name):
     """Simply verifies that a request to the UI endpoint is successful if Marathon is launched."""
 
     auth = DCOSAcsAuth(dcos_acs_token())
-    response = requests.get("{}/ui/".format(dcos_service_url(marathon_service_name)), auth=auth, verify=verify_ssl())
-    assert response.status_code == 200, "HTTP status code is {}, but 200 was expected".format(response.status_code)
+    response = requests.get(
+        f"{dcos_service_url(marathon_service_name)}/ui/",
+        auth=auth,
+        verify=verify_ssl(),
+    )
+
+    assert (
+        response.status_code == 200
+    ), f"HTTP status code is {response.status_code}, but 200 was expected"
 
 
 def test_task_failure_recovers():
@@ -264,10 +278,13 @@ def test_run_app_with_specified_user():
 
     tasks = client.get_tasks(app_id)
     task = tasks[0]
-    assert task['state'] == 'TASK_RUNNING', "The task is not running: {}".format(task['state'])
+    assert (
+        task['state'] == 'TASK_RUNNING'
+    ), f"The task is not running: {task['state']}"
+
 
     app = client.get_app(app_id)
-    assert app['user'] == 'centos', "The app's user is not centos: {}".format(app['user'])
+    assert app['user'] == 'centos', f"The app's user is not centos: {app['user']}"
 
 
 @pytest.mark.skipif("ee_version() == 'strict'")
@@ -311,7 +328,9 @@ def test_launch_group():
 
     group_apps = client.get_group(groups_id)
     apps = group_apps['apps']
-    assert len(apps) == 2, "The numbers of apps is {} after deployment, but 2 is expected".format(len(apps))
+    assert (
+        len(apps) == 2
+    ), f"The numbers of apps is {len(apps)} after deployment, but 2 is expected"
 
 
 @private_agents(2)
@@ -330,12 +349,18 @@ def test_launch_and_scale_group():
 
     group_apps = client.get_group(groups_id)
     apps = group_apps['apps']
-    assert len(apps) == 2, "The number of apps is {}, but 2 was expected".format(len(apps))
+    assert len(apps) == 2, f"The number of apps is {len(apps)}, but 2 was expected"
 
     tasks1 = client.get_tasks(app1_id)
     tasks2 = client.get_tasks(app2_id)
-    assert len(tasks1) == 1, "The number of tasks #1 is {} after deployment, but 1 was expected".format(len(tasks1))
-    assert len(tasks2) == 1, "The number of tasks #2 is {} after deployment, but 1 was expected".format(len(tasks2))
+    assert (
+        len(tasks1) == 1
+    ), f"The number of tasks #1 is {len(tasks1)} after deployment, but 1 was expected"
+
+    assert (
+        len(tasks2) == 1
+    ), f"The number of tasks #2 is {len(tasks2)} after deployment, but 1 was expected"
+
 
     # scale by 2 for the entire group
     client.scale_group(groups_id, 2)
@@ -343,8 +368,13 @@ def test_launch_and_scale_group():
 
     tasks1 = client.get_tasks(app1_id)
     tasks2 = client.get_tasks(app2_id)
-    assert len(tasks1) == 2, "The number of tasks #1 is {} after scale, but 2 was expected".format(len(tasks1))
-    assert len(tasks2) == 2, "The number of tasks #2 is {} after scale, but 2 was expected".format(len(tasks2))
+    assert (
+        len(tasks1) == 2
+    ), f"The number of tasks #1 is {len(tasks1)} after scale, but 2 was expected"
+
+    assert (
+        len(tasks2) == 2
+    ), f"The number of tasks #2 is {len(tasks2)} after scale, but 2 was expected"
 
 
 @private_agents(2)
@@ -363,12 +393,18 @@ def test_scale_app_in_group():
 
     group_apps = client.get_group(groups_id)
     apps = group_apps['apps']
-    assert len(apps) == 2, "The number of apps is {}, but 2 was expected".format(len(apps))
+    assert len(apps) == 2, f"The number of apps is {len(apps)}, but 2 was expected"
 
     tasks1 = client.get_tasks(app1_id)
     tasks2 = client.get_tasks(app2_id)
-    assert len(tasks1) == 1, "The number of tasks #1 is {} after deployment, but 1 was expected".format(len(tasks1))
-    assert len(tasks2) == 1, "The number of tasks #2 is {} after deployment, but 1 was expected".format(len(tasks2))
+    assert (
+        len(tasks1) == 1
+    ), f"The number of tasks #1 is {len(tasks1)} after deployment, but 1 was expected"
+
+    assert (
+        len(tasks2) == 1
+    ), f"The number of tasks #2 is {len(tasks2)} after deployment, but 1 was expected"
+
 
     # scaling just one app in the group
     client.scale_app(app1_id, 2)
@@ -376,8 +412,13 @@ def test_scale_app_in_group():
 
     tasks1 = client.get_tasks(app1_id)
     tasks2 = client.get_tasks(app2_id)
-    assert len(tasks1) == 2, "The number of tasks #1 is {} after scale, but 2 was expected".format(len(tasks1))
-    assert len(tasks2) == 1, "The number of tasks #2 is {} after scale, but 1 was expected".format(len(tasks2))
+    assert (
+        len(tasks1) == 2
+    ), f"The number of tasks #1 is {len(tasks1)} after scale, but 2 was expected"
+
+    assert (
+        len(tasks2) == 1
+    ), f"The number of tasks #2 is {len(tasks2)} after scale, but 1 was expected"
 
 
 @private_agents(2)
@@ -396,12 +437,18 @@ def test_scale_app_in_group_then_group():
 
     group_apps = client.get_group(groups_id)
     apps = group_apps['apps']
-    assert len(apps) == 2, "The number of apps is {}, but 2 was expected".format(len(apps))
+    assert len(apps) == 2, f"The number of apps is {len(apps)}, but 2 was expected"
 
     tasks1 = client.get_tasks(app1_id)
     tasks2 = client.get_tasks(app2_id)
-    assert len(tasks1) == 1, "The number of tasks #1 is {} after deployment, but 1 was expected".format(len(tasks1))
-    assert len(tasks2) == 1, "The number of tasks #2 is {} after deployment, but 1 was expected".format(len(tasks2))
+    assert (
+        len(tasks1) == 1
+    ), f"The number of tasks #1 is {len(tasks1)} after deployment, but 1 was expected"
+
+    assert (
+        len(tasks2) == 1
+    ), f"The number of tasks #2 is {len(tasks2)} after deployment, but 1 was expected"
+
 
     # scaling just one app in the group
     client.scale_app(app1_id, 2)
@@ -409,8 +456,14 @@ def test_scale_app_in_group_then_group():
 
     tasks1 = client.get_tasks(app1_id)
     tasks2 = client.get_tasks(app2_id)
-    assert len(tasks1) == 2, "The number of tasks #1 is {} after scale, but 2 was expected".format(len(tasks1))
-    assert len(tasks2) == 1, "The number of tasks #2 is {} after scale, but 1 was expected".format(len(tasks2))
+    assert (
+        len(tasks1) == 2
+    ), f"The number of tasks #1 is {len(tasks1)} after scale, but 2 was expected"
+
+    assert (
+        len(tasks2) == 1
+    ), f"The number of tasks #2 is {len(tasks2)} after scale, but 1 was expected"
+
     deployment_wait(service_id=app1_id)
 
     # scaling the group after one app in the group was scaled
@@ -419,8 +472,13 @@ def test_scale_app_in_group_then_group():
 
     tasks1 = client.get_tasks(app1_id)
     tasks2 = client.get_tasks(app2_id)
-    assert len(tasks1) == 4, "The number of tasks #1 is {} after scale, but 4 was expected".format(len(tasks1))
-    assert len(tasks2) == 2, "The number of tasks #2 is {} after scale, but 2 was expected".format(len(tasks2))
+    assert (
+        len(tasks1) == 4
+    ), f"The number of tasks #1 is {len(tasks1)} after scale, but 4 was expected"
+
+    assert (
+        len(tasks2) == 2
+    ), f"The number of tasks #2 is {len(tasks2)} after scale, but 2 was expected"
 
 
 def assert_app_healthy(client, app_def, health_check):
@@ -428,16 +486,19 @@ def assert_app_healthy(client, app_def, health_check):
     instances = app_def['instances']
     app_id = app_def["id"]
 
-    logger.info('Testing {} health check protocol.'.format(health_check['protocol']))
+    logger.info(f"Testing {health_check['protocol']} health check protocol.")
     client.add_app(app_def)
 
     deployment_wait(service_id=app_id, max_attempts=300)
 
     app = client.get_app(app_id)
-    assert app['tasksRunning'] == instances, \
-        "The number of running tasks is {}, but {} was expected".format(app['tasksRunning'], instances)
-    assert app['tasksHealthy'] == instances, \
-        "The number of healthy tasks is {}, but {} was expected".format(app['tasksHealthy'], instances)
+    assert (
+        app['tasksRunning'] == instances
+    ), f"The number of running tasks is {app['tasksRunning']}, but {instances} was expected"
+
+    assert (
+        app['tasksHealthy'] == instances
+    ), f"The number of healthy tasks is {app['tasksHealthy']}, but {instances} was expected"
 
 
 @dcos_1_9
@@ -462,10 +523,13 @@ def test_app_with_no_health_check_not_healthy():
 
     app = client.get_app(app_id)
 
-    assert app['tasksRunning'] == 1, \
-        "The number of running tasks is {}, but 1 was expected".format(app['tasksRunning'])
-    assert app['tasksHealthy'] == 0, \
-        "The number of healthy tasks is {}, but 0 was expected".format(app['tasksHealthy'])
+    assert (
+        app['tasksRunning'] == 1
+    ), f"The number of running tasks is {app['tasksRunning']}, but 1 was expected"
+
+    assert (
+        app['tasksHealthy'] == 0
+    ), f"The number of healthy tasks is {app['tasksHealthy']}, but 0 was expected"
 
 
 def test_command_health_check_healthy():
@@ -577,7 +641,10 @@ def test_health_check_works_with_resident_task():
 
     deployment_wait(service_id=app_id, max_attempts=500)
     tasks = client.get_tasks(app_def["id"])
-    assert len(tasks) == 1, "The number of tasks is {}, but 1 was expected".format(len(tasks))
+    assert (
+        len(tasks) == 1
+    ), f"The number of tasks is {len(tasks)}, but 1 was expected"
+
 
     assert_that(lambda: client.get_app(app_def['id']), eventually(has_value('tasksHealthy', 1), max_attempts=30))
 
@@ -597,17 +664,27 @@ def test_pinned_task_scales_on_host_only():
     deployment_wait(service_id=app_id)
 
     tasks = client.get_tasks(app_id)
-    assert len(tasks) == 1, "The number of tasks is {} after deployment, but 1 was expected".format(len(tasks))
-    assert tasks[0]['host'] == host, \
-        "The task is on {}, but it is supposed to be on {}".format(tasks[0]['host'], host)
+    assert (
+        len(tasks) == 1
+    ), f"The number of tasks is {len(tasks)} after deployment, but 1 was expected"
+
+    assert (
+        tasks[0]['host'] == host
+    ), f"The task is on {tasks[0]['host']}, but it is supposed to be on {host}"
+
 
     client.scale_app(app_id, 10)
     deployment_wait(service_id=app_id)
 
     tasks = client.get_tasks(app_id)
-    assert len(tasks) == 10, "The number of tasks is {} after scale, but 10 was expected".format(len(tasks))
+    assert (
+        len(tasks) == 10
+    ), f"The number of tasks is {len(tasks)} after scale, but 10 was expected"
+
     for task in tasks:
-        assert task['host'] == host, "The task is on {}, but it is supposed to be on {}".format(task['host'], host)
+        assert (
+            task['host'] == host
+        ), f"The task is on {task['host']}, but it is supposed to be on {host}"
 
 
 @private_agents(2)
@@ -648,7 +725,7 @@ def test_pinned_task_does_not_scale_to_unpinned_host():
     app_id = app_def['id']
 
     host = common.ip_other_than_mom()
-    logger.info('Constraint set to host: {}'.format(host))
+    logger.info(f'Constraint set to host: {host}')
     # the size of cpus is designed to be greater than 1/2 of a node
     # such that only 1 task can land on the node.
     cores = common.cpus_on_agent(host)
@@ -666,8 +743,13 @@ def test_pinned_task_does_not_scale_to_unpinned_host():
     tasks = client.get_tasks(app_id)
 
     # still deploying
-    assert len(deployments) == 1, "The number of deployments is {}, but 1 was expected".format(len(deployments))
-    assert len(tasks) == 1, "The number of tasks is {}, but 1 was expected".format(len(tasks))
+    assert (
+        len(deployments) == 1
+    ), f"The number of deployments is {len(deployments)}, but 1 was expected"
+
+    assert (
+        len(tasks) == 1
+    ), f"The number of tasks is {len(tasks)}, but 1 was expected"
 
 
 @private_agents(2)
@@ -687,7 +769,7 @@ def test_pinned_task_does_not_find_unknown_host():
     time.sleep(10)
 
     tasks = client.get_tasks(app_def["id"])
-    assert len(tasks) == 0, "The number of tasks is {}, 0 was expected".format(len(tasks))
+    assert len(tasks) == 0, f"The number of tasks is {len(tasks)}, 0 was expected"
 
 
 @dcos_1_8
@@ -799,7 +881,10 @@ def test_app_update():
     deployment_wait(service_id=app_id)
 
     tasks = client.get_tasks(app_id)
-    assert len(tasks) == 1, "The number of tasks is {} after deployment, but 1 was expected".format(len(tasks))
+    assert (
+        len(tasks) == 1
+    ), f"The number of tasks is {len(tasks)} after deployment, but 1 was expected"
+
 
     app_def['cpus'] = 1
     app_def['instances'] = 2
@@ -808,7 +893,9 @@ def test_app_update():
     deployment_wait(service_id=app_id)
 
     tasks = client.get_tasks(app_id)
-    assert len(tasks) == 2, "The number of tasks is {} after deployment, but 2 was expected".format(len(tasks))
+    assert (
+        len(tasks) == 2
+    ), f"The number of tasks is {len(tasks)} after deployment, but 2 was expected"
 
 
 def test_app_update_rollback():
@@ -983,7 +1070,7 @@ def test_default_user():
 
     app = client.get_app(app_id)
     user = app.get('user')
-    assert user is None, "User is {}, but it should not have been set".format(user)
+    assert user is None, f"User is {user}, but it should not have been set"
 
     tasks = client.get_tasks(app_id)
     host = tasks[0]['host']
@@ -1079,15 +1166,24 @@ def test_private_repository_docker_app():
 def test_ping(marathon_service_name):
     """Tests the Marathon's /ping end-point."""
     response = common.http_get_marathon_path('ping', marathon_service_name)
-    assert response.status_code == 200, "HTTP status code {} is NOT 200".format(response.status_code)
-    assert 'pong' in response.text, "Got {} instead of pong".format(response.text)
+    assert (
+        response.status_code == 200
+    ), f"HTTP status code {response.status_code} is NOT 200"
+
+    assert 'pong' in response.text, f"Got {response.text} instead of pong"
 
 
 def test_metrics_endpoint(marathon_service_name):
     service_url = dcos_service_url(marathon_service_name)
     auth = DCOSAcsAuth(dcos_acs_token())
-    response = requests.get("{}metrics".format(service_url), auth=auth, verify=verify_ssl())
-    assert response.status_code == 200, "HTTP status code {} is NOT 200".format(response.status_code)
+    response = requests.get(
+        f"{service_url}metrics", auth=auth, verify=verify_ssl()
+    )
+
+    assert (
+        response.status_code == 200
+    ), f"HTTP status code {response.status_code} is NOT 200"
+
 
     if marathon_version_less_than('1.7'):
         metric_name = 'service.mesosphere.marathon.app.count'
@@ -1095,9 +1191,10 @@ def test_metrics_endpoint(marathon_service_name):
         metric_name = 'marathon.apps.active.gauge'
 
     response_json = response.json()
-    logger.info('Found metric gauges: {}'.format(response_json['gauges']))
-    assert response_json['gauges'][metric_name] is not None, \
-        "{} is absent".format(metric_name)
+    logger.info(f"Found metric gauges: {response_json['gauges']}")
+    assert (
+        response_json['gauges'][metric_name] is not None
+    ), f"{metric_name} is absent"
 
 
 def test_healtchcheck_and_volume():
@@ -1113,7 +1210,10 @@ def test_healtchcheck_and_volume():
     tasks = client.get_tasks(app_id)
     app = client.get_app(app_id)
 
-    assert len(tasks) == 1, "The number of tasks is {} after deployment, but only 1 was expected".format(len(tasks))
+    assert (
+        len(tasks) == 1
+    ), f"The number of tasks is {len(tasks)} after deployment, but only 1 was expected"
+
     assert len(app['container']['volumes']) == 2, "The container does not have the correct amount of volumes"
 
     # check if app becomes healthy
@@ -1265,9 +1365,13 @@ def test_ipv6_healthcheck(docker_ipv6_network_fixture):
     deployment_wait(service_id=app_id)
 
     app = client.get_app(app_id)
-    assert app['tasksRunning'] == target_instances_count, \
-        "The number of running tasks is {}, but {} was expected".format(app['tasksRunning'], target_instances_count)
-    assert app['tasksHealthy'] == target_instances_count, \
-        "The number of healthy tasks is {}, but {} was expected".format(app['tasksHealthy'], target_instances_count)
+    assert (
+        app['tasksRunning'] == target_instances_count
+    ), f"The number of running tasks is {app['tasksRunning']}, but {target_instances_count} was expected"
+
+    assert (
+        app['tasksHealthy'] == target_instances_count
+    ), f"The number of healthy tasks is {app['tasksHealthy']}, but {target_instances_count} was expected"
+
 
     client.remove_app(app['id'], True)

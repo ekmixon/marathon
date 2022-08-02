@@ -20,7 +20,7 @@ def read_shakedown_config():
         :rtype: dict
     """
     configfile = path.expanduser('~/.shakedown')
-    args = dict()
+    args = {}
     if path.isfile(configfile):
         with open(configfile, 'r') as f:
             config = toml.loads(f.read())
@@ -123,5 +123,5 @@ class DCOSAcsAuth(requests.auth.AuthBase):
         self.token = token
 
     def __call__(self, r):
-        r.headers['Authorization'] = "token={}".format(self.token)
+        r.headers['Authorization'] = f"token={self.token}"
         return r

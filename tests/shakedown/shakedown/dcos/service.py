@@ -40,11 +40,10 @@ def get_service(
 
     services = mesos.get_master().frameworks(inactive=inactive, completed=completed)
 
-    for service in services:
-        if service['name'] == service_name:
-            return service
-
-    return None
+    return next(
+        (service for service in services if service['name'] == service_name),
+        None,
+    )
 
 
 def get_service_framework_id(
@@ -66,10 +65,7 @@ def get_service_framework_id(
 
     service = get_service(service_name, inactive, completed)
 
-    if service is not None and service['id']:
-        return service['id']
-
-    return None
+    return service['id'] if service is not None and service['id'] else None
 
 
 def get_service_tasks(
@@ -91,10 +87,7 @@ def get_service_tasks(
 
     service = get_service(service_name, inactive, completed)
 
-    if service is not None and service['tasks']:
-        return service['tasks']
-
-    return []
+    return service['tasks'] if service is not None and service['tasks'] else []
 
 
 def get_service_task_ids(
@@ -242,11 +235,9 @@ def service_healthy(service_name, app_id=None):
     """
 
     marathon_client = marathon.create_client()
-    apps = marathon_client.get_apps_for_framework(service_name)
-
-    if apps:
+    if apps := marathon_client.get_apps_for_framework(service_name):
         for app in apps:
-            if (app_id is not None) and (app['id'] != "/{}".format(str(app_id))):
+            if app_id is not None and app['id'] != f"/{str(app_id)}":
                 continue
 
             if (app['tasksHealthy']) and \
@@ -355,7 +346,6 @@ def unreserve_resources(role):
 def unreserve_resource(agent, role):
     """ Unreserves all the resources for the role on the agent.
     """
-    resources = []
     agent_id = agent['id']
 
     reserved_resources_full = agent.get('reserved_resources_full', None)
@@ -368,9 +358,7 @@ def unreserve_resource(agent, role):
         # doesn't exist
         return True
 
-    for reserved_resource in reserved_resources:
-        resources.append(reserved_resource)
-
+    resources = list(reserved_resources)
     req_url = urljoin(master_url(), 'unreserve')
     data = {
         'slaveId': agent_id,
@@ -416,7 +404,7 @@ def wait_for_service_endpoint(service_name, timeout_sec=120, path=""):
 
         return response.status_code
 
-    schema = 'https' if ee_version() == 'strict' or ee_version() == 'permissive' else 'http'
+    schema = 'https' if ee_version() in ['strict', 'permissive'] else 'http'
     logger.info('Waiting for service /service/{}/{} to become available on all masters'.format(service_name, path))
 
     for ip in dcos_masters_public_ips():
@@ -456,7 +444,7 @@ def task_states_predicate(service_name, expected_task_count, expected_task_state
         if state and state in expected_task_states:
             matching_tasks.append(name)
         else:
-            other_tasks.append('{}={}'.format(name, state))
+            other_tasks.append(f'{name}={state}')
     logger.info('expected %d tasks in %s:\n- %d in expected %s: %s\n- %d in other states: %s',
                 expected_task_count, ', '.join(expected_task_states),
                 len(matching_tasks), ', '.join(expected_task_states), ', '.join(matching_tasks),
@@ -535,9 +523,7 @@ def tasks_all_replaced_predicate(
     for id in task_ids:
         if id in old_task_ids:
             return False  # old task still present
-    if len(task_ids) < len(old_task_ids):  # new tasks haven't fully replaced old tasks
-        return False
-    return True
+    return len(task_ids) >= len(old_task_ids)
 
 
 def tasks_missing_predicate(
@@ -565,10 +551,7 @@ def tasks_missing_predicate(
 
     logger.info('checking whether old tasks in "%s" are missing:\n- old tasks: %s\n- current tasks: %s',
                 service_name, old_task_ids, task_ids)
-    for id in old_task_ids:
-        if id not in task_ids:
-            return True  # an old task was not present
-    return False
+    return any(id not in task_ids for id in old_task_ids)
 
 
 def wait_for_service_tasks_all_changed(

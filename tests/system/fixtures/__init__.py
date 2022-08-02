@@ -49,7 +49,7 @@ def parent_group(request):
     function. Parent group will be removed after the test. Group name is equal to the test function name with
     underscores replaced by dashes.
     """
-    group = '/{}'.format(request.function.__name__).replace('_', '-')
+    group = f'/{request.function.__name__}'.replace('_', '-')
     yield group
     common.clean_up_marathon(parent_group=group)
 
@@ -111,11 +111,13 @@ def archive_sandboxes():
     logger.info('>>> Archiving Mesos sandboxes')
     # We tarball the sandboxes from all the agents first and download them afterwards
     for agent in get_private_agents():
-        file_name = 'sandbox_{}.tar.gz'.format(agent.replace(".", "_"))
-        cmd = 'sudo tar --exclude=provisioner -zcf {} /var/lib/mesos/slave'.format(file_name)
+        file_name = f'sandbox_{agent.replace(".", "_")}.tar.gz'
+        cmd = f'sudo tar --exclude=provisioner -zcf {file_name} /var/lib/mesos/slave'
         status, output = run_command_on_agent(agent, cmd)  # NOQA
 
         if status:
             copy_file_from_agent(agent, file_name)
         else:
-            logger.warning('Failed to tarball the sandbox from the agent={}, output={}'.format(agent, output))
+            logger.warning(
+                f'Failed to tarball the sandbox from the agent={agent}, output={output}'
+            )

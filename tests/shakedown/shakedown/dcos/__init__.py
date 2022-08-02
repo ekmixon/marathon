@@ -23,12 +23,7 @@ def agents_url():
 
 def dcos_state():
     client = mesos.DCOSClient()
-    json_data = client.get_state_summary()
-
-    if json_data:
-        return json_data
-    else:
-        return None
+    return json_data if (json_data := client.get_state_summary()) else None
 
 
 # TODO(karsten): Use Mesos client instead.
@@ -36,10 +31,7 @@ def dcos_agents_state():
     auth = DCOSAcsAuth(dcos_acs_token())
     response = requests.get(agents_url(), auth=auth, verify=verify_ssl())
 
-    if response.status_code == 200:
-        return response.json()
-    else:
-        return None
+    return response.json() if response.status_code == 200 else None
 
 
 def dcos_leader():
@@ -58,10 +50,7 @@ def dcos_version():
     auth = DCOSAcsAuth(dcos_acs_token())
     response = requests.get(url, auth=auth, verify=verify_ssl())
 
-    if response.status_code == 200:
-        return response.json()['version']
-    else:
-        return None
+    return response.json()['version'] if response.status_code == 200 else None
 
 
 def master_ip():

@@ -26,4 +26,4 @@ def dcos_service_url(service):
     :param service: the name of a registered DC/OS service, as a string
     :return: the full DC/OS service URL, as a string
     """
-    return dcos_url_path("/service/{}/".format(service))
+    return dcos_url_path(f"/service/{service}/")

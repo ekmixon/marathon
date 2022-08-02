@@ -8,7 +8,7 @@ def groups_dir():
 
 
 def load_group(group_name):
-    group_path = os.path.join(groups_dir(), "{}.json".format(group_name))
+    group_path = os.path.join(groups_dir(), f"{group_name}.json")
     return get_resource(group_path)
 
 

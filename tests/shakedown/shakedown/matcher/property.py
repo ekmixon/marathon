@@ -11,7 +11,7 @@ class Prop(Matcher):
 
     def readable_path(self):
         readable_path = ']['.join(str(p) for p in self._path)
-        return '[{}]'.format(readable_path)
+        return f'[{readable_path}]'
 
     def _get_value(self, item, path):
         if not path:
@@ -21,25 +21,19 @@ class Prop(Matcher):
         else:
             head_value = item.get(path[0])
             tail_path = path[1:]
-            if not tail_path:
-                return head_value
-            else:
-                return self._get_value(head_value, tail_path)
+            return self._get_value(head_value, tail_path) if tail_path else head_value
 
     def match(self, item):
-        actual = self._get_value(item, self._path)
-        if actual:
-            result = self.matcher.match(actual)
-            if result.is_match:
-                return result
-            else:
-                explanation = "property {} {}".format(self.readable_path(), result.explanation)
-                return unmatched(explanation)
-        else:
-            return unmatched("had no property {}".format(self.readable_path()))
+        if not (actual := self._get_value(item, self._path)):
+            return unmatched(f"had no property {self.readable_path()}")
+        result = self.matcher.match(actual)
+        if result.is_match:
+            return result
+        explanation = f"property {self.readable_path()} {result.explanation}"
+        return unmatched(explanation)
 
     def describe(self):
-        return "property {} {}".format(self.readable_path(), self.matcher.describe())
+        return f"property {self.readable_path()} {self.matcher.describe()}"
 
 
 def prop(path, matcher):
@@ -84,13 +78,15 @@ class HasValue(Matcher):
     def match(self, actual):
         if self._name not in actual:
             return unmatched("was missing value '{0}'".format(self._name))
-        else:
-            actual_value = actual.get(self._name)
-            property_result = self._matcher.match(actual_value)
-            if property_result.is_match:
-                return matched()
-            else:
-                return unmatched("value '{0}' {1}".format(self._name, property_result.explanation))
+        actual_value = actual.get(self._name)
+        property_result = self._matcher.match(actual_value)
+        return (
+            matched()
+            if property_result.is_match
+            else unmatched(
+                "value '{0}' {1}".format(self._name, property_result.explanation)
+            )
+        )
 
     def describe(self):
         return "object with value {0}: {1}".format(self._name, self._matcher.describe())

@@ -46,8 +46,6 @@ def partition_master(incoming=True, outgoing=True):
         network.run_iptables(master_ip(), DISABLE_MASTER_INCOMING)
     elif outgoing:
         network.run_iptables(master_ip(), DISABLE_MASTER_OUTGOING)
-    else:
-        pass
 
 
 def reconnect_master():
@@ -66,7 +64,7 @@ def restart_master_node():
 def systemctl_master(command='restart'):
     """ Used to start, stop or restart the master process
     """
-    run_command_on_master('sudo systemctl {} dcos-mesos-master'.format(command))
+    run_command_on_master(f'sudo systemctl {command} dcos-mesos-master')
 
 
 def mesos_available_predicate():
@@ -95,12 +93,11 @@ def _master_zk_nodes_keys():
     """ The masters can be registered in zk with arbitrary ids which start with
         `json.info_`.  This provides a list of all master keys.
     """
-    master_zk = []
-    for node in _mesos_zk_nodes():
-        if 'json.info' in node['title']:
-            master_zk.append(node['key'])
-
-    return master_zk
+    return [
+        node['key']
+        for node in _mesos_zk_nodes()
+        if 'json.info' in node['title']
+    ]
 
 
 def get_all_masters():
@@ -117,11 +114,7 @@ def get_all_masters():
 def get_all_master_ips():
     """ Returns a list of IPs for the masters
     """
-    ips = []
-    for master in get_all_masters():
-        ips.append(master['hostname'])
-
-    return ips
+    return [master['hostname'] for master in get_all_masters()]
 
 
 def is_multi_master():
@@ -144,7 +137,7 @@ def required_masters(count):
 
 
 def masters(count=1):
-    return pytest.mark.skipif('required_masters({})'.format(count))
+    return pytest.mark.skipif(f'required_masters({count})')
 
 
 def start_master_http_service(port=7777, pid_file='python_http.pid'):
@@ -157,8 +150,9 @@ def start_master_http_service(port=7777, pid_file='python_http.pid'):
     :return: pid_file
     """
     run_command_on_master(
-        'nohup /opt/mesosphere/bin/python -m http.server {} > http.log 2>&1 & '
-        'echo $! > {}'.format(port, pid_file))
+        f'nohup /opt/mesosphere/bin/python -m http.server {port} > http.log 2>&1 & echo $! > {pid_file}'
+    )
+
     return pid_file
 
 

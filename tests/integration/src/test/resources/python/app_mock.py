@@ -74,6 +74,8 @@ def make_handler(app_id, version, task_id, base_url):
     Factory method that creates a handler class.
     """
 
+
+
     class Handler(SimpleHTTPRequestHandler):
 
         def handle_ping(self):
@@ -81,13 +83,13 @@ def make_handler(app_id, version, task_id, base_url):
             self.send_header('Content-type', 'text/html')
             self.end_headers()
 
-            msg = "Pong {}".format(app_id)
+            msg = f"Pong {app_id}"
 
             self.wfile.write(byte_type(msg, "UTF-8"))
 
         def check_readiness(self):
 
-            url = "{}/{}/ready".format(base_url, task_id)
+            url = f"{base_url}/{task_id}/ready"
 
             logging.debug("Query %s for readiness", url)
             url_req = Request(url, headers={"User-Agent": "Mozilla/5.0"})
@@ -107,7 +109,7 @@ def make_handler(app_id, version, task_id, base_url):
 
         def check_health(self):
 
-            url = "{}/health".format(base_url)
+            url = f"{base_url}/health"
 
             logging.debug("Query %s for health", url)
             url_req = Request(url, headers={"User-Agent": "Mozilla/5.0"})
@@ -136,7 +138,11 @@ def make_handler(app_id, version, task_id, base_url):
             #
             # Filesystem            Size  Used Avail Use% Mounted on
             # tmpfs                   23       0    23   0% /dev/shm
-            shm_size = re.search('tmpfs\\s+([0-9]+)\\s+[0-9]+\\s+[0-9]+\\s+[0-9]+%\\s+/dev/shm', df_shm_info).group(1)
+            shm_size = re.search(
+                'tmpfs\\s+([0-9]+)\\s+[0-9]+\\s+[0-9]+\\s+[0-9]+%\\s+/dev/shm',
+                df_shm_info,
+            )[1]
+
 
             self.send_response(200)
             self.send_header('Content-Type', 'application/text')
@@ -188,7 +194,7 @@ def make_handler(app_id, version, task_id, base_url):
 
         def do_GET(self):
             try:
-                logging.debug("Got GET request for path {}".format(self.path))
+                logging.debug(f"Got GET request for path {self.path}")
                 if self.path == '/ping':
                     return self.handle_ping()
                 elif self.path == '/ready':
@@ -204,22 +210,23 @@ def make_handler(app_id, version, task_id, base_url):
                 else:
                     return SimpleHTTPRequestHandler.do_GET(self)
             except Exception:
-                logging.exception("Could not handle GET request for path {}".format(self.path))
+                logging.exception(f"Could not handle GET request for path {self.path}")
 
         def do_POST(self):
             try:
-                logging.debug("Got POST request for path {}".format(self.path))
+                logging.debug(f"Got POST request for path {self.path}")
                 return self.check_health()
             except Exception:
-                logging.exception("Could not handle POST request for path {}".format(self.path))
+                logging.exception(f"Could not handle POST request for path {self.path}")
 
         def do_DELETE(self):
             try:
-                logging.debug("Got DELETE request for path {}".format(self.path))
+                logging.debug(f"Got DELETE request for path {self.path}")
                 if self.path == '/suicide':
                     return self.handle_suicide()
             except Exception:
-                logging.exception("Could not handle DELETE request for path {}".format(self.path))
+                logging.exception(f"Could not handle DELETE request for path {self.path}")
+
 
     return Handler
 
@@ -250,7 +257,7 @@ if __name__ == "__main__":
 
     # Trigger proper shutdown on SIGTERM.
     def handle_sigterm(signum, frame):
-        logging.warning("Received {} signal. Closing the server...".format(signum))
+        logging.warning(f"Received {signum} signal. Closing the server...")
         httpd.server_close()
 
     signal.signal(signal.SIGTERM, handle_sigterm)

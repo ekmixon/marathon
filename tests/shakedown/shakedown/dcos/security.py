@@ -30,15 +30,13 @@ def add_user(uid, password, desc=None):
     """
     desc = uid if desc is None else desc
     user_object = {"description": desc, "password": password}
-    acl_url = urljoin(_acl_url(), 'users/{}'.format(uid))
+    acl_url = urljoin(_acl_url(), f'users/{uid}')
     auth = DCOSAcsAuth(dcos_acs_token())
     try:
         r = requests.put(acl_url, json=user_object, auth=auth, verify=verify_ssl())
         r.raise_for_status()
     except requests.HTTPError as e:
-        if e.response.status_code == 409:
-            pass
-        else:
+        if e.response.status_code != 409:
             raise
 
 
@@ -50,7 +48,7 @@ def get_user(uid):
         :return: User
         :rtype: dict
     """
-    acl_url = urljoin(_acl_url(), 'users/{}'.format(uid))
+    acl_url = urljoin(_acl_url(), f'users/{uid}')
     auth = DCOSAcsAuth(dcos_acs_token())
     r = requests.get(acl_url, auth=auth, verify=verify_ssl())
     return r.json()
@@ -62,7 +60,7 @@ def remove_user(uid):
         :param uid: user id
         :type uid: str
     """
-    acl_url = urljoin(_acl_url(), 'users/{}'.format(uid))
+    acl_url = urljoin(_acl_url(), f'users/{uid}')
     auth = DCOSAcsAuth(dcos_acs_token())
     r = requests.delete(acl_url, auth=auth, verify=verify_ssl())
     r.raise_for_status()
@@ -75,15 +73,13 @@ def ensure_resource(rid):
         :param rid: resource ID
         :type rid: str
     """
-    acl_url = urljoin(_acl_url(), 'acls/{}'.format(rid))
+    acl_url = urljoin(_acl_url(), f'acls/{rid}')
     auth = DCOSAcsAuth(dcos_acs_token())
     try:
         r = requests.put(acl_url, json={'description': 'jope'}, auth=auth, verify=verify_ssl())
         r.raise_for_status()
     except requests.HTTPError as e:
-        if e.response.status_code == 409:
-            pass
-        else:
+        if e.response.status_code != 409:
             raise
 
 
@@ -103,7 +99,7 @@ def set_user_permission(rid, uid, action='full'):
     ensure_resource(rid)
 
     # Set the permission triplet.
-    acl_url = urljoin(_acl_url(), 'acls/{}/users/{}/{}'.format(rid, uid, action))
+    acl_url = urljoin(_acl_url(), f'acls/{rid}/users/{uid}/{action}')
     auth = DCOSAcsAuth(dcos_acs_token())
     r = requests.put(acl_url, auth=auth, verify=verify_ssl())
     assert r.status_code == 204
@@ -122,7 +118,7 @@ def remove_user_permission(rid, uid, action='full'):
     rid = rid.replace('/', '%252F')
 
     try:
-        acl_url = urljoin(_acl_url(), 'acls/{}/users/{}/{}'.format(rid, uid, action))
+        acl_url = urljoin(_acl_url(), f'acls/{rid}/users/{uid}/{action}')
         auth = DCOSAcsAuth(dcos_acs_token())
         r = requests.delete(acl_url, auth=auth, verify=verify_ssl())
         assert r.status_code == 204
@@ -137,8 +133,7 @@ def new_dcos_user(user_id, password):
     """
     add_user(user_id, password, user_id)
 
-    token = authenticate(user_id, password)
-    yield token
+    yield authenticate(user_id, password)
     remove_user(user_id)
 
 
@@ -147,8 +142,7 @@ def dcos_user(user_id, password):
     """ Provides a context with user otherthan super
     """
 
-    token = authenticate(user_id, password)
-    yield token
+    yield authenticate(user_id, password)
 
 
 def add_group(id, description=None):
@@ -166,7 +160,7 @@ def add_group(id, description=None):
     data = {
         'description': description
     }
-    acl_url = urljoin(_acl_url(), 'groups/{}'.format(id))
+    acl_url = urljoin(_acl_url(), f'groups/{id}')
     auth = DCOSAcsAuth(dcos_acs_token())
     r = requests.put(acl_url, json=data, auth=auth, verify=verify_ssl())
     assert r.status_code == 201
@@ -180,7 +174,7 @@ def get_group(id):
         :return: Group
         :rtype: dict
     """
-    acl_url = urljoin(_acl_url(), 'groups/{}'.format(id))
+    acl_url = urljoin(_acl_url(), f'groups/{id}')
     auth = DCOSAcsAuth(dcos_acs_token())
     r = requests.get(acl_url, auth=auth, verify=verify_ssl())
     return r.json()
@@ -193,7 +187,7 @@ def remove_group(id):
         :param id: group id
         :type id: str
     """
-    acl_url = urljoin(_acl_url(), 'groups/{}'.format(id))
+    acl_url = urljoin(_acl_url(), f'groups/{id}')
     auth = DCOSAcsAuth(dcos_acs_token())
     r = requests.delete(acl_url, auth=auth, verify=verify_ssl())
     r.raise_for_status()
@@ -210,7 +204,7 @@ def add_user_to_group(uid, gid, exist_ok=True):
         :param exist_ok: True if it is ok for the relationship to pre-exist.
         :type exist_ok: bool
     """
-    acl_url = urljoin(_acl_url(), 'groups/{}/users/{}'.format(gid, uid))
+    acl_url = urljoin(_acl_url(), f'groups/{gid}/users/{uid}')
     auth = DCOSAcsAuth(dcos_acs_token())
     r = requests.put(acl_url, auth=auth, verify=verify_ssl())
     assert r.status_code == 204
@@ -224,7 +218,7 @@ def remove_user_from_group(uid, gid):
         :param gid: group id
         :type gid: str
     """
-    acl_url = urljoin(_acl_url(), 'groups/{}/users/{}'.format(gid, uid))
+    acl_url = urljoin(_acl_url(), f'groups/{gid}/users/{uid}')
     auth = DCOSAcsAuth(dcos_acs_token())
     r = requests.delete(acl_url, auth=auth, verify=verify_ssl())
     assert r.status_code == 204

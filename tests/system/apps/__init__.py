@@ -13,7 +13,7 @@ def apps_dir():
 
 def load_app(app_def_file, app_id=None, parent_group="/"):
     """Loads an app definition from a json file and sets the app id."""
-    app_path = os.path.join(apps_dir(), "{}.json".format(app_def_file))
+    app_path = os.path.join(apps_dir(), f"{app_def_file}.json")
     app = get_resource(app_path)
 
     if app_id is None:
@@ -21,7 +21,7 @@ def load_app(app_def_file, app_id=None, parent_group="/"):
     else:
         app['id'] = join(parent_group, app_id)
 
-    logger.info('Loaded an app definition with id={}'.format(app['id']))
+    logger.info(f"Loaded an app definition with id={app['id']}")
     return app
 
 

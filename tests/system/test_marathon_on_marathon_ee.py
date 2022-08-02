@@ -42,7 +42,7 @@ DEFAULT_MOM_IMAGES = {
 
 
 def is_mom_ee_deployed():
-    mom_ee_id = '/{}'.format(MOM_EE_NAME)
+    mom_ee_id = f'/{MOM_EE_NAME}'
     client = marathon.create_client()
     apps = client.get_apps()
     return any(app['id'] == mom_ee_id for app in apps)
@@ -59,39 +59,40 @@ def remove_mom_ee():
     ]
     for mom_ee in mom_ee_versions:
         endpoint = mom_ee_endpoint(mom_ee[0], mom_ee[1])
-        logger.info('Checking endpoint: {}'.format(endpoint))
+        logger.info(f'Checking endpoint: {endpoint}')
         if service_available_predicate(endpoint):
-            logger.info('Removing {}...'.format(endpoint))
+            logger.info(f'Removing {endpoint}...')
             with marathon_on_marathon(name=endpoint) as client:
                 delete_all_apps(client=client)
 
     client = marathon.create_client()
     client.remove_app(MOM_EE_NAME)
     deployment_wait(MOM_EE_NAME)
-    logger.info('Successfully removed {}'.format(MOM_EE_NAME))
+    logger.info(f'Successfully removed {MOM_EE_NAME}')
 
 
 def mom_ee_image(version):
-    image_name = 'MOM_EE_{}'.format(version)
+    image_name = f'MOM_EE_{version}'
     try:
         os.environ[image_name]
     except Exception:
         default_image = DEFAULT_MOM_IMAGES[image_name]
-        logger.info('No environment override found for MoM-EE  v{}. Using default image {}'.format(
-            version,
-            default_image))
+        logger.info(
+            f'No environment override found for MoM-EE  v{version}. Using default image {default_image}'
+        )
+
         return default_image
 
 
 def mom_ee_endpoint(version, security_mode):
     # '1.3', 'permissive' -> marathon-user-ee-permissive-1-3
-    return '{}-{}-{}'.format(MOM_EE_NAME, security_mode, version.replace('.', '-'))
+    return f"{MOM_EE_NAME}-{security_mode}-{version.replace('.', '-')}"
 
 
 def assert_mom_ee(version, security_mode='permissive'):
     ensure_service_account()
     ensure_permissions()
-    ensure_sa_secret(strict=True if security_mode == 'strict' else False)
+    ensure_sa_secret(strict=security_mode == 'strict')
     ensure_docker_config_secret()
 
     # In strict mode all tasks are started as user `nobody` by default. However we start
@@ -101,14 +102,23 @@ def assert_mom_ee(version, security_mode='permissive'):
         common.add_dcos_marathon_user_acls()
 
     # Deploy MoM-EE in permissive mode
-    app_def_file = '{}/mom-ee-{}-{}.json'.format(fixtures.fixtures_dir(), security_mode, version)
-    assert os.path.isfile(app_def_file), "Couldn't find appropriate MoM-EE definition: {}".format(app_def_file)
+    app_def_file = (
+        f'{fixtures.fixtures_dir()}/mom-ee-{security_mode}-{version}.json'
+    )
+
+    assert os.path.isfile(
+        app_def_file
+    ), f"Couldn't find appropriate MoM-EE definition: {app_def_file}"
+
 
     image = mom_ee_image(version)
-    logger.info('Deploying {} definition with {} image'.format(app_def_file, image))
+    logger.info(f'Deploying {app_def_file} definition with {image} image')
 
     app_def = get_resource(app_def_file)
-    app_def['container']['docker']['image'] = 'mesosphere/marathon-dcos-ee:{}'.format(image)
+    app_def['container']['docker'][
+        'image'
+    ] = f'mesosphere/marathon-dcos-ee:{image}'
+
     app_id = app_def["id"]
 
     client = marathon.create_client()
@@ -153,7 +163,7 @@ def simple_sleep_app(mom_endpoint):
         deployment_wait(service_id=app_id, client=client)
 
         tasks = get_service_task(mom_endpoint, app_id.lstrip("/"))
-        logger.info('MoM-EE tasks: {}'.format(tasks))
+        logger.info(f'MoM-EE tasks: {tasks}')
         return tasks is not None
 
 
@@ -170,10 +180,17 @@ def ensure_service_account():
 def ensure_permissions():
     common.set_service_account_permissions(MOM_EE_SERVICE_ACCOUNT)
 
-    url = urljoin(dcos_url(), 'acs/api/v1/acls/dcos:superuser/users/{}'.format(MOM_EE_SERVICE_ACCOUNT))
+    url = urljoin(
+        dcos_url(),
+        f'acs/api/v1/acls/dcos:superuser/users/{MOM_EE_SERVICE_ACCOUNT}',
+    )
+
     auth = DCOSAcsAuth(dcos_acs_token())
     req = requests.get(url, auth=auth, verify=verify_ssl())
-    expected = '/acs/api/v1/acls/dcos:superuser/users/{}/full'.format(MOM_EE_SERVICE_ACCOUNT)
+    expected = (
+        f'/acs/api/v1/acls/dcos:superuser/users/{MOM_EE_SERVICE_ACCOUNT}/full'
+    )
+
     assert req.json()['array'][0]['url'] == expected, "Service account permissions couldn't be set"
 
 
